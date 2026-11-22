@@ -194,7 +194,7 @@ function IngredientSheet({ ing, used, onClose }: { ing: Ingredient | null; used:
     >
       <div className="space-y-5">
         <Field label={t.ingredients.nameTa} error={error}>
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} autoFocus={!ing} />
+          <TextInput value={name} maxLength={120} onChange={(e) => setName(e.target.value)} autoFocus={!ing} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t.common.unit}>

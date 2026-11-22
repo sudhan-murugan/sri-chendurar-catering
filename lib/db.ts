@@ -195,7 +195,11 @@ export function saveMany(ops: SaveOp[]): AnyRow[] {
   const tx = idb.transaction([...tables, "outbox"], "readwrite");
   ops.forEach((op, i) => void tx.objectStore(op.table).put(saved[i]));
   for (const e of entries) void tx.objectStore("outbox").put(e);
-  tx.done.catch((err) => console.error("IndexedDB write failed", err));
+  tx.done.catch((err) => {
+    // e.g. phone storage full: tell the UI instead of failing silently
+    console.error("IndexedDB write failed", err);
+    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("scc-store-error"));
+  });
   onLocalWrite?.();
   return saved;
 }

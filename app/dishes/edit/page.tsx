@@ -129,7 +129,7 @@ function DishEdit() {
 
       <section className="card grid gap-5 p-4 md:grid-cols-2 md:p-6">
         <Field label={t.simple.dishName} error={error}>
-          <TextInput value={name} onChange={(e) => (setName(e.target.value), setError(null))} placeholder="இட்லி" />
+          <TextInput value={name} maxLength={120} onChange={(e) => (setName(e.target.value), setError(null))} placeholder="இட்லி" />
         </Field>
         <Field label={t.simple.refPeople} hint={t.simple.refHint}>
           <NumberStepper label={t.simple.refPeople} value={batch} step={10} min={1} onChange={setBatch} />

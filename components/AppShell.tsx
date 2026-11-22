@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BottomNav, TopNav } from "@/components/mobile";
-import { Icon, Skeleton, Toaster, Button } from "@/components/ui";
+import { Icon, Skeleton, Toaster, Button, toast } from "@/components/ui";
 import { PinLock } from "@/components/PinLock";
 import { ConfirmHost } from "@/components/ui/Confirm";
 import { cachedUserId } from "@/lib/auth";
@@ -36,6 +36,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     (async () => {
       await openStore(uid);
       startSyncLoop();
+      // ask the browser not to clear this app's data under storage pressure
+      void navigator.storage?.persisted?.().then((p) => p || navigator.storage.persist?.());
       if (cancelled) return;
       // no sample data: a new install starts empty; existing data is pulled from the server
       if (!DEMO_MODE) await syncNow();
@@ -78,6 +80,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   usePullToRefresh(!isLogin && ready);
+
+  // a failed write on the phone (e.g. storage full) must never be silent
+  useEffect(() => {
+    const onErr = () => toast(t.app.storeError, "bad");
+    window.addEventListener("scc-store-error", onErr);
+    return () => window.removeEventListener("scc-store-error", onErr);
+  }, []);
 
   if (isLogin) return <>{children}</>;
 
@@ -184,6 +193,7 @@ function StatusBanner() {
         {sync.pending > 0 && <span className="opacity-70">({sync.pending})</span>}
       </div>
     );
+  if (sync.rejected > 0) return <div role="alert" className={`${bar} border-line bg-danger-soft text-danger`}>{f(t.app.rejected, { n: sync.rejected })}</div>;
   if (sync.error && sync.pending > 0) return <div className={`${bar} border-line bg-danger-soft text-danger`}>{t.app.syncError}</div>;
   return null;
 }

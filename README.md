@@ -21,7 +21,8 @@ Only three tabs at the bottom. Settings (business name, backup, logout) are behi
 | App | Next.js (static export) + TypeScript + Tailwind, installable PWA |
 | Data | Saved on the phone first (IndexedDB), then synced to Supabase; works offline |
 | Server | Supabase Postgres + Auth + Row Level Security (only you can see your data) |
-| Hosting | Vercel (free plan is enough) |
+| Hosting | Cloudflare Pages (free) – see [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) for why |
+| Backups | Daily database dump by a GitHub Action in a private repo ([ops/backup-repo](ops/backup-repo)) |
 | Money | Stored as whole **paise** (integers) |
 
 Scaling rule ([lib/simple.ts](lib/simple.ts), tested in [tests/calc.test.ts](tests/calc.test.ts)):
@@ -31,17 +32,24 @@ together in the combined list. No hidden wastage or rounding.
 
 ---
 
-## 1. Set up Supabase (one time, ~10 minutes)
+## 1. Set up Supabase (one time, ~15 minutes)
 
-1. Go to <https://supabase.com> → **New project**. Choose region **Mumbai (ap-south-1)**. Save the database password somewhere safe.
-2. **SQL Editor → New query** → paste the whole file
-   [supabase/migrations/20261120000000_init.sql](supabase/migrations/20261120000000_init.sql) → **Run**.
-   (Or with the CLI: `npx supabase link` then `npx supabase db push`.)
-3. **Authentication → Sign In / Providers → Email**: keep Email enabled, and turn
-   **OFF "Allow new users to sign up"**. Nobody else can create an account.
-4. **Authentication → Users → Add user → Create new user**: enter your email and a
-   strong password, tick **Auto confirm user**. This is your only login.
-5. **Project Settings → API**: copy the **Project URL** and the **anon public** key.
+1. <https://supabase.com> → **New project**. Region **Mumbai (ap-south-1)**. Save the database password in a safe place.
+2. **SQL Editor → New query** → paste and **Run**, in this order:
+   1. [supabase/migrations/20261120000000_init.sql](supabase/migrations/20261120000000_init.sql)
+   2. [supabase/migrations/20261122000000_hardening.sql](supabase/migrations/20261122000000_hardening.sql)
+3. **Authentication → Sign In / Providers → Email**: keep Email on, **turn OFF "Allow new users to sign up"**,
+   keep "Confirm email" on. (**Authentication → Policies/Password**: minimum length 12.)
+4. **Authentication → Users → Add user → Create new user**: your e-mail + a strong password,
+   tick **Auto confirm user**. This is the only login.
+5. **Project Settings → API Keys**: create/copy the **Publishable key** (`sb_publishable_…`)
+   and the **Project URL**. Do not use the old "anon" key – Supabase is retiring it.
+6. Check sign-ups are really off (should print an error, not a user):
+   ```bash
+   curl -s -X POST "https://<ref>.supabase.co/auth/v1/signup" \
+     -H "apikey: sb_publishable_…" -H "Content-Type: application/json" \
+     -d '{"email":"test@example.com","password":"Test-123456789"}'
+   ```
 
 The app starts **empty** – no sample data. Add your own dishes and prices
 (the home screen shows how to start).
@@ -50,35 +58,52 @@ The app starts **empty** – no sample data. Add your own dishes and prices
 
 ```bash
 npm install
-cp .env.example .env.local     # paste your Project URL and anon key
+cp .env.example .env.local     # paste your Project URL and publishable key
 npm run dev                    # http://localhost:3000
-npm test                       # calculation tests
+npm test                       # calculation + config tests
 ```
 
-Without `.env.local` the app runs in **demo mode**: no login, data stays only in
-that browser. Useful to try it out.
+Without `.env.local`, `npm run dev` runs in **demo mode** (no login, data stays in that browser).
+A **production build refuses to start** without the Supabase variables – so a wrong deploy can
+never silently keep your data only on the phone. For a local demo build use
+`NEXT_PUBLIC_DEMO_MODE=1 npm run build`.
 
-## 3. Deploy to Vercel
+## 3. Deploy on Cloudflare Pages (free)
 
-1. Push this folder to a GitHub repository (private is fine).
-2. <https://vercel.com> → **Add New → Project** → import the repository.
-3. **Environment Variables**: add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-4. **Deploy**. Build command and output are picked up automatically
-   (`npm run build`, static output in `out/`). If Vercel asks, set
-   *Output Directory* to `out`.
+1. <https://dash.cloudflare.com> → sign up (free) → **Workers & Pages → Create → Pages →
+   Connect to Git** → choose `sri-chendurar-catering`.
+2. Build settings: Framework preset **Next.js (Static HTML Export)** · Build command
+   `npm run build` · Build output directory `out`. (Node version comes from `.node-version`.)
+3. **Environment variables (Production)**:
+   `NEXT_PUBLIC_SUPABASE_URL` = Project URL, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = `sb_publishable_…`
+4. **Save and Deploy**. Your app is at `https://<project>.pages.dev` (free HTTPS).
+   Every push to `main` deploys automatically. Response headers come from `out/_headers`
+   (generated by the build).
 
 When you deploy a new version, the app on your phone shows
 **"புதிய பதிப்பு தயார் – புதுப்பி"**. Tap it to update.
 
-## 4. Install on your Android phone
+### Changing a key or the database later (no code change)
+1. Copy the new value from Supabase (Project Settings → API Keys).
+2. Cloudflare → Workers & Pages → the project → **Settings → Variables and Secrets** → edit → Save.
+3. **Deployments** → latest → **Retry deployment** (the value is built into the app).
+4. On the phone tap **புதுப்பி**. If you moved to a *different* Supabase project:
+   ⚙ → Log out first, then update and log in.
 
-1. Open the Vercel link in **Chrome** on your phone.
+## 4. Daily backups (one time, ~10 minutes)
+
+Supabase Free has no backups, so a GitHub Action makes one every day and also keeps the
+free project from pausing. Follow [ops/backup-repo/README.md](ops/backup-repo/README.md):
+create a **private** repo, copy that folder into it, add the `SUPABASE_DB_URL` secret.
+The app repo is public – never put backups or the database password in it.
+
+## 5. Install on your Android phone
+
+1. Open the `pages.dev` link in **Chrome** on your phone.
 2. Log in with the email and password from step 1.4.
 3. Tap **⋮ (menu) → Add to Home screen / Install app → Install**.
 4. The **🪔 செந்தூரர்** icon appears on your home screen. It opens full-screen like a normal app.
 5. Open it once while online so everything is saved on the phone. After that it works in airplane mode too.
-
-
 
 ---
 
@@ -89,16 +114,19 @@ When you deploy a new version, the app on your phone shows
 2. SQL Editor இல் `supabase/migrations/...init.sql` கோப்பை முழுவதும் ஒட்டி **Run** செய்யவும்.
 3. Authentication → Email: **"Allow new users to sign up"** ஐ அணைக்கவும் (வேறு யாரும் கணக்கு தொடங்க முடியாது).
 4. Authentication → Users → **Add user**: உங்கள் மின்னஞ்சல், கடவுச்சொல் கொடுத்து **Auto confirm** தேர்வு செய்யவும்.
-5. Project Settings → API இலிருந்து **Project URL**, **anon key** நகலெடுக்கவும்.
+5. Project Settings → API Keys இலிருந்து **Project URL**, **Publishable key** (`sb_publishable_…`) நகலெடுக்கவும்.
 
-**Vercel**
-1. இந்த project ஐ GitHub இல் போடவும்.
-2. vercel.com → New Project → அந்த repository ஐ தேர்வு செய்யவும்.
-3. Environment Variables இல் `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` சேர்க்கவும்.
-4. **Deploy** அழுத்தவும்.
+**Cloudflare Pages (இலவசம்)**
+1. dash.cloudflare.com → Workers & Pages → Create → Pages → Connect to Git → இந்த repository.
+2. Build command `npm run build`, Output `out`.
+3. Variables இல் `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` சேர்க்கவும் → **Deploy**.
+4. Key மாற்ற வேண்டுமெனில்: Variables இல் மாற்றி → Retry deployment → போனில் **புதுப்பி**. Code மாற்ற தேவையில்லை.
+
+**தினசரி காப்பு (Backup)**: `ops/backup-repo` கோப்புறையை ஒரு **private** GitHub repository யில் வைத்து
+`SUPABASE_DB_URL` secret சேர்க்கவும் – தினமும் தானாக காப்பு எடுக்கும்.
 
 **போனில் நிறுவுதல் (Android)**
-1. Vercel இணைப்பை **Chrome** இல் திறக்கவும்.
+1. `pages.dev` இணைப்பை **Chrome** இல் திறக்கவும்.
 2. மின்னஞ்சல், கடவுச்சொல் கொடுத்து உள்நுழையவும்.
 3. **⋮ → Add to Home screen / Install app** அழுத்தவும்.
 4. முகப்புத் திரையில் **🪔 செந்தூரர்** ஐகான் வரும். அதைத் தொட்டால் app போல முழுத் திரையில் திறக்கும்.
@@ -114,13 +142,21 @@ When you deploy a new version, the app on your phone shows
 
 ## Backup
 
-**⚙ → காப்பு (Backup)**: your data is stored in Supabase; for a copy you can read, use
-**Excel – பகிர்** (send to WhatsApp / Google Drive) or **Excel பதிவிறக்கு** (download).
-One sheet per table, prices in rupees.
+| Layer | What | How often |
+|---|---|---|
+| Database dump | GitHub Action in a private repo ([ops/backup-repo](ops/backup-repo)) – restorable | Daily, automatic |
+| Phone copy | Full offline copy in the app | Continuous |
+| Excel | ⚙ → காப்பு → **Excel – பகிர்** (WhatsApp / Drive) – easy to read | Monthly (suggested) |
+
+Restore steps: [ops/backup-repo/README.md](ops/backup-repo/README.md). Full plan and one-year risk
+assessment: [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
 
 ## Security
 
 - Single user. Sign-ups are disabled in Supabase; there is no sign-up screen.
+- The publishable key and URL are public by design; the data is protected by Row Level Security.
+  The build refuses secret/service_role keys. The database password lives only in the private
+  backup repo's secrets.
 - Every table has Row Level Security: `user_id = auth.uid()`. Database triggers
   also stop a row from pointing at another user's data.
 - You stay logged in on your phone.
@@ -134,8 +170,10 @@ components/     ui, mobile (BottomNav, BottomSheet, StickyActionBar, NumberStepp
 lib/            simple.ts (scaling), calc.ts + units.ts (engine), db.ts (local store),
                 offline-sync.ts, supabase.ts, backup.ts
 locales/ta.json all UI text – change wording here
-supabase/       migrations (schema + RLS)
-tests/          calc.test.ts
+supabase/       migrations (schema + RLS, hardening)
+ops/backup-repo daily backup workflow + backup.sh / restore.sh (copy into a private repo)
+docs/           INFRASTRUCTURE.md – hosting/database research, architecture, risks
+tests/          calc.test.ts, config.test.ts
 ```
 
 The database schema still contains tables for orders/combos/payments from the first
@@ -145,4 +183,4 @@ version; the app no longer uses them, and they cost nothing while empty.
 
 - Page URLs use `?id=` (e.g. `/dishes/edit/?id=…`) so the app can be a fully static, offline-cached site.
 - Sync is last-write-wins (fine for one person). Unsynced phone edits are never overwritten by a sync.
-- A JSON backup can only be restored into the account that made it.
+- `lib/config.ts` is the only file that reads environment variables.

@@ -20,7 +20,7 @@ const hash = createHash("sha256");
 const urls = [];
 for (const f of files.sort()) {
   const rel = relative(OUT, f).split(sep).join("/");
-  if (rel === "sw.js" || rel.endsWith(".map") || rel === "404.html" || rel.startsWith("_not-found") || rel === "icons/icon.svg") continue;
+  if (rel === "sw.js" || rel === "_headers" || rel.endsWith(".map") || rel === "404.html" || rel.startsWith("_not-found") || rel === "icons/icon.svg") continue;
   hash.update(rel).update(readFileSync(f));
   // pages are served at their folder URL (trailingSlash: true)
   urls.push("/" + rel.replace(/(^|\/)index\.html$/, "$1"));
@@ -77,4 +77,23 @@ self.addEventListener("fetch", (e) => {
 });
 `;
 writeFileSync(join(OUT, "sw.js"), sw);
+
+// Response headers for Cloudflare Pages / Netlify (`_headers` file format).
+// vercel.json carries the same rules for Vercel. Keep the two in sync.
+const SECURITY = [
+  "X-Content-Type-Options: nosniff",
+  "Referrer-Policy: strict-origin-when-cross-origin",
+  "X-Frame-Options: DENY",
+  "Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()",
+];
+const headers = [
+  "/*",
+  ...SECURITY.map((h) => "  " + h),
+  "/sw.js",
+  "  Cache-Control: no-cache",
+  "/_next/static/*",
+  "  Cache-Control: public, max-age=31536000, immutable",
+  "",
+].join("\n");
+writeFileSync(join(OUT, "_headers"), headers);
 console.log(`sw.js: ${urls.length} files precached, version ${version}`);

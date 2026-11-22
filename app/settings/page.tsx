@@ -6,6 +6,7 @@ import { useSettings } from "@/lib/settings";
 import { clearPin } from "@/lib/pin";
 import { logout } from "@/lib/auth";
 import { DEMO_MODE } from "@/lib/supabase";
+import { syncNow } from "@/lib/offline-sync";
 import { downloadOrShare, excelFile, lastBackupAt } from "@/lib/backup";
 import { askConfirm } from "@/components/ui/Confirm";
 import { dmy } from "@/lib/format";
@@ -23,7 +24,7 @@ export default function SettingsPage() {
       <section className="card space-y-5 p-4 md:p-6">
         <LogoEditor />
         <Field label={t.settings.businessName}>
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+          <TextInput value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Button
           full
@@ -51,7 +52,15 @@ export default function SettingsPage() {
           variant="secondary"
           className="mt-8"
           onClick={async () => {
-            if (!(await askConfirm({ title: t.confirm.logoutTitle, message: pendingCount() > 0 ? t.login.logoutWarn : undefined, confirmLabel: t.login.logout, danger: pendingCount() > 0 }))) return;
+            // send any unsynced changes first; never discard them without an explicit choice
+            if (pendingCount() > 0) await syncNow();
+            const pending = pendingCount();
+            const ok = await askConfirm(
+              pending > 0
+                ? { title: t.confirm.logoutTitle, message: f(t.confirm.logoutPending, { n: pending }), confirmLabel: t.confirm.logoutAnyway, danger: true }
+                : { title: t.confirm.logoutTitle, confirmLabel: t.login.logout },
+            );
+            if (!ok) return;
             const uid = getUserId();
             clearPin();
             await logout();

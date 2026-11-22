@@ -1,0 +1,57 @@
+# Daily backup of the Sri Chendurar Catering database + keep-alive.
+# Lives in a PRIVATE repository (backups must never go to a public repo).
+# Secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL               session pooler connection string (contains the DB password)
+# Variables (same page, "Variables" tab – public values):
+#   SUPABASE_URL                  https://<ref>.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY      sb_publishable_…
+name: Daily database backup
+
+on:
+  schedule:
+    - cron: "30 20 * * *" # 02:00 India time, every day
+  workflow_dispatch: # "Run workflow" button for a manual backup
+
+permissions:
+  contents: write
+
+concurrency: backup
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Keep the free Supabase project active (one small API request)
+        if: ${{ vars.SUPABASE_URL != '' && vars.SUPABASE_PUBLISHABLE_KEY != '' }}
+        run: |
+          curl -fsS -o /dev/null -w "Supabase API answered: %{http_code}\n" \
+            -H "apikey: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}" \
+            "${{ vars.SUPABASE_URL }}/rest/v1/dishes?select=id&limit=1"
+
+      - name: Install a PostgreSQL client matching the server version
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common postgresql-client > /dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          MAJOR=$(psql "$SUPABASE_DB_URL" -At -c "show server_version_num" | cut -c1-2)
+          sudo apt-get install -y -qq "postgresql-client-$MAJOR" > /dev/null
+          echo "PG_DUMP=/usr/lib/postgresql/$MAJOR/bin/pg_dump" >> "$GITHUB_ENV"
+          echo "PSQL=/usr/lib/postgresql/$MAJOR/bin/psql" >> "$GITHUB_ENV"
+
+      - name: Back up the database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: ./backup.sh backup
+
+      - name: Save the backup in this private repository
+        run: |
+          git config user.name "backup-bot"
+          git config user.email "backup-bot@users.noreply.github.com"
+          git add backup
+          git commit -q -m "Backup $(date -u +%Y-%m-%d)" || echo "No changes"
+          git push

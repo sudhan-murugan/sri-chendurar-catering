@@ -18,6 +18,8 @@ export interface SyncStatus {
   lastSyncAt: string | null;
   error: string | null;
   authExpired: boolean;
+  /** Changes the server refused (e.g. a value too long); they stay on the phone and are retried. */
+  rejected: number;
 }
 
 let status: SyncStatus = {
@@ -27,6 +29,7 @@ let status: SyncStatus = {
   lastSyncAt: null,
   error: null,
   authExpired: false,
+  rejected: 0,
 };
 const listeners = new Set<() => void>();
 function set(p: Partial<SyncStatus>) {
@@ -79,7 +82,8 @@ async function run(): Promise<boolean> {
       set({ authExpired: true, syncing: false });
       return false;
     }
-    await push(sb);
+    const rejected = await push(sb);
+    set({ rejected });
     await pull(sb);
     set({ syncing: false, online: true, lastSyncAt: new Date().toISOString(), authExpired: false });
     return true;
@@ -93,28 +97,61 @@ async function run(): Promise<boolean> {
 
 type Sb = Awaited<NonNullable<ReturnType<typeof supabase>>>;
 
-async function push(sb: Sb) {
+/**
+ * A Postgres data error (bad value, constraint, permission on one row) as opposed
+ * to a network/auth problem. Data errors affect single rows, so the rest of the
+ * changes must still be sent instead of being blocked behind one bad row.
+ */
+function isRowError(error: { code?: string } | null): boolean {
+  return !!error?.code && /^(22|23|42)/.test(error.code);
+}
+
+/** Send pending changes, parents first. Returns how many rows the server refused. */
+async function push(sb: Sb): Promise<number> {
   const entries = db.pendingEntries();
+  let rejected = 0;
   for (const t of TABLES) {
     const forTable = entries.filter((e) => e.table === t);
     for (let i = 0; i < forTable.length; i += PUSH_CHUNK) {
       const chunk = forTable.slice(i, i + PUSH_CHUNK);
-      const rows = chunk.map((e) => db.getRow(t, e.id)).filter((r): r is NonNullable<typeof r> => !!r) as object[];
-      if (rows.length) {
-        const { error } = await sb.from(t).upsert(rows, { onConflict: "id" });
-        // stop on first error: later tables may depend on this one
-        if (error) throw new Error(`${t}: ${error.message}`);
+      const withRows = chunk.map((e) => ({ e, row: db.getRow(t, e.id) }));
+      const rows = withRows.filter((x) => !!x.row).map((x) => x.row as object);
+      if (!rows.length) {
+        await db.ackPushed(chunk);
+        continue;
       }
-      await db.ackPushed(chunk);
+      const { error } = await sb.from(t).upsert(rows, { onConflict: "id" });
+      if (!error) {
+        await db.ackPushed(chunk);
+        continue;
+      }
+      // network / auth problem: stop and retry the whole sync later
+      if (!isRowError(error)) throw new Error(`${t}: ${error.message}`);
+      // one or more bad rows: send them one by one so the good ones still go through
+      for (const { e, row } of withRows) {
+        if (!row) {
+          await db.ackPushed([e]);
+          continue;
+        }
+        const r = await sb.from(t).upsert(row as object, { onConflict: "id" });
+        if (!r.error) await db.ackPushed([e]);
+        else if (isRowError(r.error)) {
+          rejected++; // stays in the outbox (kept on the phone), retried next time
+          console.warn(`sync: server refused ${t}/${e.id}: ${r.error.message}`);
+        } else throw new Error(`${t}: ${r.error.message}`);
+      }
     }
   }
+  return rejected;
 }
 
 async function pull(sb: Sb) {
   for (const t of TABLES) {
     let cursor = (await db.getMeta<string>(`pull:${t}`)) ?? "1970-01-01T00:00:00Z";
     for (;;) {
-      const { data, error } = await sb.from(t).select("*").gte("updated_at", cursor).order("updated_at").limit(PAGE);
+      // strictly newer than the last row we have: no re-downloading the same row every minute
+      // (updated_at is set per row by clock_timestamp(), so timestamps don't collide)
+      const { data, error } = await sb.from(t).select("*").gt("updated_at", cursor).order("updated_at").limit(PAGE);
       if (error) throw new Error(`${t}: ${error.message}`);
       if (!data?.length) break;
       await db.applyRemote(t, data);
@@ -141,3 +178,6 @@ export function startSyncLoop() {
   setInterval(() => void syncNow(), 60_000);
   set({ pending: db.pendingCount() });
 }
+
+/** Exposed for unit tests only. */
+export const __testing = { push, pull, isRowError };

@@ -500,7 +500,7 @@ function SaveMenuSheet({ onClose, onSave }: { onClose: () => void; onSave: (name
       }
     >
       <Field label={t.simple.menuName} error={error}>
-        <TextInput autoFocus value={name} placeholder={t.simple.menuNamePh} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && name.trim() && onSave(name.trim())} />
+        <TextInput autoFocus value={name} maxLength={120} placeholder={t.simple.menuNamePh} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && name.trim() && onSave(name.trim())} />
       </Field>
     </BottomSheet>
   );

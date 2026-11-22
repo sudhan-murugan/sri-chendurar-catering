@@ -18,7 +18,7 @@ export function IngredientPicker({ open, onClose, onPick, exclude = [] }: { open
     return all.filter((i) => !s || i.name_ta.toLowerCase().includes(s) || (i.name_en ?? "").toLowerCase().includes(s)).sort((a, b) => a.name_ta.localeCompare(b.name_ta, "ta"));
   }, [all, q]);
   const excluded = new Set(exclude);
-  const typed = q.trim();
+  const typed = q.trim().slice(0, 120);
   const exact = all.some((i) => i.name_ta === typed);
 
   const done = (i: Ingredient) => {
