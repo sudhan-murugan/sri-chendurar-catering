@@ -8,19 +8,15 @@ import { trimNum } from "@/lib/units";
 
 // ------------------------------------------------------------- BottomNav
 const NAV = [
-  { href: "/", label: t.nav.home, icon: "home" },
+  { href: "/", label: t.nav.home, icon: "dish" },
   { href: "/calculator/", label: t.nav.calc, icon: "calc" },
-  { href: "/orders/", label: t.nav.orders, icon: "orders" },
-  { href: "/ingredients/", label: t.nav.ingredients, icon: "basket" },
-  { href: "/more/", label: t.nav.more, icon: "more" },
+  { href: "/ingredients/", label: t.nav.prices, icon: "rupee" },
 ];
-const MORE_PATHS = ["/more", "/dishes", "/combos", "/settings", "/shopping-list"];
 
 export function BottomNav() {
   const path = usePathname() || "/";
   const active = (href: string) => {
-    if (href === "/") return path === "/";
-    if (href === "/more/") return MORE_PATHS.some((p) => path.startsWith(p));
+    if (href === "/") return path === "/" || path.startsWith("/dishes");
     return path.startsWith(href.replace(/\/$/, ""));
   };
   return (
@@ -33,7 +29,7 @@ export function BottomNav() {
               <Link
                 href={n.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex h-16 flex-col items-center justify-center gap-0.5 text-[13px] font-semibold ${on ? "text-brand-600 dark:text-brand-100" : "text-muted"}`}
+                className={`flex h-16 flex-col items-center justify-center gap-0.5 text-[15px] font-semibold ${on ? "text-brand-600 dark:text-brand-100" : "text-muted"}`}
               >
                 <span className={`flex h-8 w-14 items-center justify-center rounded-full ${on ? "bg-brand-100 dark:bg-brand-900" : ""}`}>
                   <Icon name={n.icon} size={24} />

@@ -137,22 +137,27 @@ function Header() {
         <Link href="/" className="flex h-12 min-w-0 flex-1 items-center truncate text-lg font-bold">
           {s.businessName}
         </Link>
-        <button
-          type="button"
-          onClick={() => void syncNow()}
-          className="tap -mr-2 flex items-center justify-center gap-1 rounded-full text-sm"
-          aria-label={sync.online ? t.app.synced : t.app.offline}
-        >
-          {DEMO_MODE ? null : !sync.online ? (
-            <Icon name="offline" />
-          ) : sync.syncing ? (
-            <Icon name="refresh" className="animate-spin" />
-          ) : sync.pending > 0 ? (
-            <span className="rounded-full bg-white/20 px-2 font-bold">{sync.pending}</span>
-          ) : (
-            <Icon name="cloud" className="opacity-80" />
-          )}
-        </button>
+        {!DEMO_MODE && (
+          <button
+            type="button"
+            onClick={() => void syncNow()}
+            className="tap flex items-center justify-center gap-1 rounded-full text-sm"
+            aria-label={sync.online ? t.app.synced : t.app.offline}
+          >
+            {!sync.online ? (
+              <Icon name="offline" />
+            ) : sync.syncing ? (
+              <Icon name="refresh" className="animate-spin" />
+            ) : sync.pending > 0 ? (
+              <span className="rounded-full bg-white/20 px-2 font-bold">{sync.pending}</span>
+            ) : (
+              <Icon name="cloud" className="opacity-80" />
+            )}
+          </button>
+        )}
+        <Link href="/settings/" aria-label={t.nav.settings} className="tap -mr-2 flex items-center justify-center rounded-full active:bg-white/20">
+          <Icon name="settings" />
+        </Link>
       </div>
     </header>
   );

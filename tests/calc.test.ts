@@ -223,3 +223,27 @@ describe("format", () => {
     expect(dmy("2026-11-20")).toBe("20-11-2026");
   });
 });
+
+import { scaleOrder, batchCost } from "@/lib/simple";
+
+describe("simple dish scaling (100-person reference)", () => {
+  const ingMap = new Map(ING.map((i) => [i.id, i]));
+  it("400 people = exactly 4× the 100 recipe, no rounding or wastage", () => {
+    const sambar = { ...SAMBAR, wastagePct: 10 }; // hidden wastage must be ignored
+    const r = scaleOrder([RICE, sambar], 400, ingMap);
+    const rice = r.combined.find((l) => l.ingredientId === "rice")!;
+    expect(rice.exactQty).toBe(60);
+    expect(rice.purchaseQty).toBe(60);
+    expect(r.dishes[0].costPaise).toBe(4 * batchCost(RICE, ingMap));
+    expect(r.totalPaise).toBe(4 * (batchCost(RICE, ingMap) + batchCost(sambar, ingMap)));
+    expect(r.combined.find((l) => l.ingredientId === "dal")!.exactQty).toBe(12);
+  });
+  it("odd headcounts are not rounded up", () => {
+    const r = scaleOrder([SAMBAR], 130, ingMap);
+    expect(r.combined.find((l) => l.ingredientId === "dal")!.purchaseQty).toBe(3.9);
+    expect(r.perPersonPaise).toBe(Math.round(r.totalPaise / 130));
+  });
+  it("batch cost of a 100-person recipe", () => {
+    expect(batchCost(RICE, ingMap)).toBe(90000); // 15 kg × ₹60
+  });
+});

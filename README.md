@@ -1,35 +1,30 @@
-# ஸ்ரீ செந்தூரர் கேட்டரிங் · Sri Chendurar Catering Manager
+# ஸ்ரீ செந்தூரர் கேட்டரிங் · Sri Chendurar Catering – Cost Calculator
 
-A personal, mobile-first app for running a South Indian catering business:
-ingredient prices, recipes, combos, cost calculator, shopping list, orders,
-payments and a dashboard. The whole UI is in Tamil.
+A simple, personal catering cost calculator for your phone (Tamil UI).
 
-You enter **number of people**, pick the **menu**, and keep **ingredient prices**
-current. Everything else is calculated automatically, on the phone, even
-without internet.
+1. **Dishes (உணவுகள்)** – for each dish, save the ingredients, quantities and prices
+   needed for a reference number of people (normally 100). The dish shows its total cost.
+2. **Calculator (கணக்கு)** – enter the number of people (e.g. 400), tick the dishes.
+   Every ingredient quantity and the total cost are scaled automatically:
+   **400 people = exactly 4 × your 100-person recipe.** Shown dish by dish or as one
+   combined buying list, and can be sent on WhatsApp.
+3. **Prices (விலைகள்)** – one list of all ingredient prices. Change the price of rice or
+   urad dal once and every dish uses the new price. You can also change a price inside a dish.
 
----
-
-## How it works (short)
+Only three tabs at the bottom. Settings (business name, backup, logout) are behind the ⚙ icon.
 
 | Part | What |
 |---|---|
 | App | Next.js (static export) + TypeScript + Tailwind, installable PWA |
-| Data | Saved on the phone first (IndexedDB), then synced to Supabase |
-| Offline | Whole app is cached. Edits made offline are queued and sent when back online |
+| Data | Saved on the phone first (IndexedDB), then synced to Supabase; works offline |
 | Server | Supabase Postgres + Auth + Row Level Security (only you can see your data) |
 | Hosting | Vercel (free plan is enough) |
-| Money | Stored as whole **paise** (integers), never floating point |
+| Money | Stored as whole **paise** (integers) |
 
-Calculation rules are in [lib/calc.ts](lib/calc.ts) and tested in [tests/calc.test.ts](tests/calc.test.ts):
-
-- Recipe quantities are for a reference batch (e.g. 100 people) → scaled to your headcount.
-- × portion multiplier (in a combo) × (1 + wastage %). Wastage is per dish, or the default from Settings.
-- Units are converted (g ↔ kg, ml ↔ litre), the same ingredient is **combined across all dishes and sessions**, then **rounded up** to a practical size (¼ kg, 50 g, …; change in Settings).
-- Ingredient cost = rounded quantity × current price.
-- Other expenses: per person, per session, or fixed.
-- Suggested price per plate = cost per plate × (1 + margin %), rounded up to the nearest ₹5.
-- Profit = selling price (before GST) − total cost. GST is added on top for the customer.
+Scaling rule ([lib/simple.ts](lib/simple.ts), tested in [tests/calc.test.ts](tests/calc.test.ts)):
+`needed quantity = recipe quantity × (people ÷ recipe people)`, with g↔kg and ml↔litre
+converted to the unit you buy in. The same ingredient used in several dishes is added
+together in the combined list. No hidden wastage or rounding.
 
 ---
 
@@ -45,11 +40,11 @@ Calculation rules are in [lib/calc.ts](lib/calc.ts) and tested in [tests/calc.te
    strong password, tick **Auto confirm user**. This is your only login.
 5. **Project Settings → API**: copy the **Project URL** and the **anon public** key.
 
-Sample data (49 ingredients, 15 recipes, 3 combos, 8 expense types) is added
+Sample data (49 ingredients with prices, 15 dish recipes for 100 people) is added
 **automatically** the first time you log in. You do not need to run
 [supabase/seed.sql](supabase/seed.sql) — it exists only if you want to load the
-sample data from the SQL editor. All sample recipes are marked
-**"மாதிரி – உங்கள் அளவுக்கு மாற்றவும்"**: change them to your own quantities.
+sample data from the SQL editor. The sample recipes and prices are rough examples:
+open each dish and change them to your own quantities and prices.
 
 ## 2. Run on your computer (optional)
 
@@ -83,7 +78,7 @@ When you deploy a new version, the app on your phone shows
 4. The **🪔 செந்தூரர்** icon appears on your home screen. It opens full-screen like a normal app.
 5. Open it once while online so everything is saved on the phone. After that it works in airplane mode too.
 
-Tip: long-press the icon for shortcuts: **செலவு கணக்கு**, **புதிய ஆர்டர்**, **விலை மாற்று**.
+
 
 ---
 
@@ -110,19 +105,18 @@ Tip: long-press the icon for shortcuts: **செலவு கணக்கு**, 
 5. ஒருமுறை இணையத்துடன் திறந்தால் போதும் – பிறகு இணையம் இல்லாமலும் கணக்கு, பட்டியல் வேலை செய்யும்.
 
 **தினசரி பயன்பாடு**
-- **கணக்கு**: நபர்கள் எண்ணிக்கை → காம்போ தட்டவும் → உடனே அளவு, செலவு, விலை, லாபம்.
-- **பொருட்கள் → ₹ விலை மாற்று**: சந்தையில் விலையைத் தட்டி மாற்றவும். உடனே சேமிக்கப்படும்.
-- **பட்டியல்**: வாங்கியதைத் தட்டவும் அல்லது வலது பக்கம் தள்ளவும். ₹ பொத்தானில் கொடுத்த தொகை.
-- **ஆர்டர்**: 5 படிகளில் புதிய ஆர்டர். "+ பணம் வந்தது" மூலம் பணம் சேர்க்கவும்.
-- **மேலும் → காப்பு (Backup)**: வாரம் ஒருமுறை காப்பை WhatsApp/Drive க்கு அனுப்பவும்.
+- **உணவுகள்**: ஒவ்வொரு உணவுக்கும் 100 நபர்களுக்கான பொருட்கள், அளவு, விலை சேமிக்கவும். மொத்த செலவு தானாக வரும்.
+- **கணக்கு**: நபர்கள் எண்ணிக்கை (எ.கா. 400) கொடுத்து உணவுகளைத் தொடவும் – எல்லா அளவுகளும் செலவும் தானாக (100 → 400 = 4 மடங்கு).
+- **விலைகள்**: அரிசி, உளுந்து விலை மாறினால் இங்கே ஒருமுறை மாற்றினால் எல்லா உணவுகளிலும் மாறும்.
+- **⚙ அமைப்புகள்**: காப்பு (Backup) – வாரம் ஒருமுறை WhatsApp/Drive க்கு அனுப்பவும்.
 
 ---
 
 ## Backup & restore
 
-**மேலும் → காப்பு (Backup)**:
+**⚙ → காப்பு (Backup)**:
 - **காப்பை பகிர்** sends a full JSON backup to WhatsApp / Google Drive (via the phone's share sheet).
-- **Excel** download: one sheet per table (prices in rupees). **CSV**: orders only.
+- **Excel** download: one sheet per table (prices in rupees).
 - **JSON இலிருந்து மீட்டெடு** restores a JSON backup into the same account (rows are merged; nothing is deleted).
 
 ## Security
@@ -130,29 +124,26 @@ Tip: long-press the icon for shortcuts: **செலவு கணக்கு**, 
 - Single user. Sign-ups are disabled in Supabase; there is no sign-up screen.
 - Every table has Row Level Security: `user_id = auth.uid()`. Database triggers
   also stop a row from pointing at another user's data.
-- You stay logged in on your phone. Optional 4-digit **PIN lock**
-  (Settings → பாதுகாப்பு) asks for the PIN when the app opens or after 2 minutes in the background.
-  The PIN is stored only on that phone (hashed). Forgot it? Tap the link on the lock
-  screen. It logs you out, and you log back in with your password.
-- Deletes are "archive" (soft delete), so old orders never break.
+- You stay logged in on your phone.
+- Deletes are "archive" (soft delete), so nothing is lost by accident.
 
 ## Project layout
 
 ```
-app/            screens: / (dashboard), calculator, orders (list, new wizard, view),
-                ingredients, dishes (+edit), combos (+edit), shopping-list, settings, more, login
-components/     ui (buttons, fields, chips…), mobile (BottomNav, BottomSheet,
-                StickyActionBar, NumberStepper, FAB, SortableList), CalcPanels, Pickers, charts
-lib/            calc.ts (engine), units.ts, db.ts (local store), offline-sync.ts,
-                supabase.ts, orders.ts, seed.ts, backup.ts, share.ts, bill-image.ts
+app/            / (dishes), dishes/edit, calculator, ingredients (prices), settings, login
+components/     ui, mobile (BottomNav, BottomSheet, StickyActionBar, NumberStepper), Pickers
+lib/            simple.ts (scaling), calc.ts + units.ts (engine), db.ts (local store),
+                offline-sync.ts, supabase.ts, seed.ts, backup.ts
 locales/ta.json all UI text – change wording here
 supabase/       migrations (schema + RLS), seed.sql (generated: npm run seed:sql)
 tests/          calc.test.ts
-scripts/        build-sw.mjs (service worker), gen-seed-sql.ts
 ```
+
+The database schema still contains tables for orders/combos/payments from the first
+version; the app no longer uses them, and they cost nothing while empty.
 
 ## Notes
 
-- Page URLs use `?id=` (e.g. `/orders/view/?id=…`) so the app can be a fully static, offline-cached site.
+- Page URLs use `?id=` (e.g. `/dishes/edit/?id=…`) so the app can be a fully static, offline-cached site.
 - Sync is last-write-wins (fine for one person). Unsynced phone edits are never overwritten by a sync.
 - A JSON backup can only be restored into the account that made it.

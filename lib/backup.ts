@@ -2,7 +2,6 @@
 import { dumpAll, saveMany, getUserId, type SaveOp } from "./db";
 import { TABLES, type TableName } from "./types";
 import { isoDate } from "./format";
-import { shareFile } from "./share";
 
 const BACKUP_VERSION = 1;
 const LAST_BACKUP_KEY = "scc_last_backup";
@@ -23,9 +22,21 @@ export function backupJson(): File {
   return new File([JSON.stringify(data)], `chendurar-backup-${isoDate()}.json`, { type: "application/json" });
 }
 
+/** Phone share sheet (WhatsApp, Drive…) when available, otherwise a download. */
+async function shareFile(file: File): Promise<boolean> {
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file] });
+      return true;
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return true;
+    }
+  }
+  return false;
+}
+
 export async function downloadOrShare(file: File, share: boolean) {
-  if (share) await shareFile(file);
-  else {
+  if (!(share && (await shareFile(file)))) {
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
     a.href = url;
@@ -37,20 +48,21 @@ export async function downloadOrShare(file: File, share: boolean) {
 }
 
 // ------------------------------------------------------------------ restore
-async function backupSchema() {
-  const { z } = await import("zod");
-  const rowSchema = z.object({ id: z.string().uuid() }).passthrough();
-  return z.object({
-    app: z.literal("sri-chendurar-catering"),
-    version: z.number(),
-    tables: z.record(z.string(), z.array(rowSchema)),
-  });
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function parseBackup(raw: unknown): { tables: Record<string, Array<Record<string, unknown> & { id: string }>> } | null {
+  const b = raw as { app?: unknown; tables?: unknown };
+  if (!b || b.app !== "sri-chendurar-catering" || typeof b.tables !== "object" || !b.tables) return null;
+  for (const rows of Object.values(b.tables)) {
+    if (!Array.isArray(rows) || rows.some((r) => !r || typeof r.id !== "string" || !UUID.test(r.id))) return null;
+  }
+  return b as { tables: Record<string, Array<Record<string, unknown> & { id: string }>> };
 }
 
 /** Merge a JSON backup into local data (and from there to the server). Returns rows restored. */
 export async function restoreJson(file: File): Promise<number> {
-  const parsed = (await backupSchema()).safeParse(JSON.parse(await file.text()));
-  if (!parsed.success) throw new Error("bad backup");
+  const parsed = { data: parseBackup(JSON.parse(await file.text())) };
+  if (!parsed.data) throw new Error("bad backup");
   const uid = getUserId();
   const ops: SaveOp[] = [];
   for (const t of TABLES) {
