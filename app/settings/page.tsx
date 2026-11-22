@@ -1,12 +1,13 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button, Field, PageTitle, TextInput, Toggle, toast } from "@/components/ui";
 import { getUserId, pendingCount, save, wipeLocal } from "@/lib/db";
 import { useSettings } from "@/lib/settings";
 import { clearPin } from "@/lib/pin";
 import { logout } from "@/lib/auth";
 import { DEMO_MODE } from "@/lib/supabase";
-import { backupJson, downloadOrShare, excelFile, lastBackupAt, restoreJson } from "@/lib/backup";
+import { downloadOrShare, excelFile, lastBackupAt } from "@/lib/backup";
+import { askConfirm } from "@/components/ui/Confirm";
 import { dmy } from "@/lib/format";
 import { f, t } from "@/lib/i18n";
 
@@ -49,7 +50,7 @@ export default function SettingsPage() {
           variant="secondary"
           className="mt-8"
           onClick={async () => {
-            if (pendingCount() > 0 && !confirm(t.login.logoutWarn)) return;
+            if (!(await askConfirm({ title: t.confirm.logoutTitle, message: pendingCount() > 0 ? t.login.logoutWarn : undefined, confirmLabel: t.login.logout, danger: pendingCount() > 0 }))) return;
             const uid = getUserId();
             clearPin();
             await logout();
@@ -80,13 +81,12 @@ function DarkModeToggle() {
 }
 
 function BackupPanel() {
-  const fileRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState(lastBackupAt());
   const [busy, setBusy] = useState(false);
-  const run = async (fn: () => Promise<void>) => {
+  const run = async (share: boolean) => {
     setBusy(true);
     try {
-      await fn();
+      await downloadOrShare(await excelFile(), share);
       setLast(lastBackupAt());
     } catch (e) {
       toast(String((e as Error).message || e), "bad");
@@ -97,33 +97,12 @@ function BackupPanel() {
   return (
     <section className="card space-y-2 p-4 md:p-6">
       {last && <p className="text-sm text-muted">{f(t.settings.lastBackup, { date: dmy(last) })}</p>}
-      <Button full variant="primary" icon="share" disabled={busy} onClick={() => run(() => downloadOrShare(backupJson(), true))}>
+      <Button full variant="primary" icon="share" disabled={busy} onClick={() => run(true)}>
         {t.settings.shareBackup}
       </Button>
-      <Button full variant="secondary" icon="download" disabled={busy} onClick={() => run(async () => downloadOrShare(await excelFile(), false))}>
+      <Button full variant="secondary" icon="download" disabled={busy} onClick={() => run(false)}>
         {t.settings.exportExcel}
       </Button>
-      <Button full variant="ghost" icon="upload" disabled={busy} onClick={() => fileRef.current?.click()}>
-        {t.settings.restore}
-      </Button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json,.json"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          if (!file || !confirm(t.settings.restoreConfirm)) return;
-          void run(async () => {
-            try {
-              toast(f(t.settings.restoreDone, { n: await restoreJson(file) }));
-            } catch {
-              toast(t.settings.restoreBad, "bad");
-            }
-          });
-        }}
-      />
     </section>
   );
 }

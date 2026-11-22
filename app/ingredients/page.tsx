@@ -3,6 +3,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Chips, Empty, Field, Icon, NumberInput, PageTitle, Select, TextInput, toast } from "@/components/ui";
 import { BottomSheet, SearchBox } from "@/components/mobile";
+import { askConfirm } from "@/components/ui/Confirm";
 import { getRows, newId, saveMany, useTable } from "@/lib/db";
 import { changedToday, setIngredientPrice } from "@/lib/actions";
 import type { Ingredient } from "@/lib/types";
@@ -167,9 +168,9 @@ function IngredientSheet({ ing, used, onClose }: { ing: Ingredient | null; used:
     onClose();
   }
 
-  function remove() {
+  async function remove() {
     if (!ing) return;
-    if (!confirm(used ? f(t.simple.deleteUsed, { n: used }) : t.common.confirmDelete)) return;
+    if (!(await askConfirm({ title: f(t.confirm.deleteIngTitle, { name: ing.name_ta }), message: used ? f(t.confirm.deleteIngUsed, { n: used }) : undefined, confirmLabel: t.confirm.delete, danger: true }))) return;
     const ops: Parameters<typeof saveMany>[0] = [{ table: "ingredients", row: { id: ing.id, archived: true } }];
     for (const r of getRows("recipe_items")) if (r.ingredient_id === ing.id) ops.push({ table: "recipe_items", row: { id: r.id, archived: true } });
     saveMany(ops);

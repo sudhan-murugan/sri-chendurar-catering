@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Field, Icon, IconButton, LinkButton, PageTitle, TextInput, toast } from "@/components/ui";
 import { BottomSheet, NumberStepper } from "@/components/mobile";
+import { askConfirm } from "@/components/ui/Confirm";
 import { newId, useTable } from "@/lib/db";
 import { useCalcData } from "@/lib/calc-data";
 import { batchCost, scaleMeals, type MealInput, type MenuResult } from "@/lib/simple";
@@ -141,7 +142,7 @@ export default function CalculatorPage() {
         title={t.simple.calcTitle}
         subtitle={t.simple.calcHint}
         right={
-          <Button variant="secondary" icon="refresh" aria-label={t.simple.reset} className="whitespace-nowrap" onClick={() => confirm(t.simple.resetConfirm) && setMeals([newMeal()])}>
+          <Button variant="secondary" icon="refresh" aria-label={t.simple.reset} className="whitespace-nowrap" onClick={async () => (await askConfirm({ title: t.confirm.resetTitle, message: t.confirm.resetMsg, confirmLabel: t.simple.reset })) && setMeals([newMeal()])}>
             <span className="hidden sm:inline">{t.simple.reset}</span>
           </Button>
         }
@@ -241,7 +242,10 @@ export default function CalculatorPage() {
               toast(t.simple.loaded);
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            onDelete={(id) => confirm(t.common.confirmDelete) && persistSaved(saved.filter((s) => s.id !== id))}
+            onDelete={async (id) => {
+              const s = saved.find((x) => x.id === id);
+              if (await askConfirm({ title: f(t.confirm.deleteMenuTitle, { name: s?.name ?? "" }), confirmLabel: t.confirm.delete, danger: true })) persistSaved(saved.filter((x) => x.id !== id));
+            }}
             onSave={hasResult ? () => setSaving(true) : undefined}
           />
         </div>

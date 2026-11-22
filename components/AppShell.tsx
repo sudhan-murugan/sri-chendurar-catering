@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BottomNav, TopNav } from "@/components/mobile";
 import { Icon, Skeleton, Toaster, Button } from "@/components/ui";
 import { PinLock } from "@/components/PinLock";
+import { ConfirmHost } from "@/components/ui/Confirm";
 import { cachedUserId } from "@/lib/auth";
 import { openStore, useStoreReady } from "@/lib/db";
 import { startSyncLoop, syncNow, useSyncStatus } from "@/lib/offline-sync";
@@ -93,6 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
       <BottomNav />
       <Toaster />
+      <ConfirmHost />
       {swWaiting && (
         <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-line bg-surface p-3 pl-4 md:bottom-6">
           <span className="flex-1 font-medium">{t.app.updateReady}</span>
@@ -160,7 +162,7 @@ function Header() {
 function StatusBanner() {
   const sync = useSyncStatus();
   const bar = "no-print border-b px-4 py-2 text-center text-sm font-medium";
-  if (DEMO_MODE) return <div className={`${bar} border-line bg-surface-2 text-muted`}>{t.app.demo}</div>;
+  if (DEMO_MODE) return null;
   if (sync.authExpired)
     return (
       <Link href="/login/" className={`${bar} block border-line bg-danger-soft text-danger`}>

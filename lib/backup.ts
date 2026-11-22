@@ -1,9 +1,8 @@
-// Backup & restore. JSON = full restorable backup. Excel (.xlsx) and CSV = for reading.
-import { dumpAll, saveMany, getUserId, type SaveOp } from "./db";
+// Backup: Excel (.xlsx, one sheet per table) and orders CSV. Your data also lives in Supabase.
+import { dumpAll } from "./db";
 import { TABLES, type TableName } from "./types";
 import { isoDate } from "./format";
 
-const BACKUP_VERSION = 1;
 const LAST_BACKUP_KEY = "scc_last_backup";
 
 export function lastBackupAt(): string | null {
@@ -15,11 +14,6 @@ export function lastBackupAt(): string | null {
 }
 function markBackup() {
   localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
-}
-
-export function backupJson(): File {
-  const data = { app: "sri-chendurar-catering", version: BACKUP_VERSION, exported_at: new Date().toISOString(), tables: dumpAll(true) };
-  return new File([JSON.stringify(data)], `chendurar-backup-${isoDate()}.json`, { type: "application/json" });
 }
 
 /** Phone share sheet (WhatsApp, Drive…) when available, otherwise a download. */
@@ -45,40 +39,6 @@ export async function downloadOrShare(file: File, share: boolean) {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
   markBackup();
-}
-
-// ------------------------------------------------------------------ restore
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function parseBackup(raw: unknown): { tables: Record<string, Array<Record<string, unknown> & { id: string }>> } | null {
-  const b = raw as { app?: unknown; tables?: unknown };
-  if (!b || b.app !== "sri-chendurar-catering" || typeof b.tables !== "object" || !b.tables) return null;
-  for (const rows of Object.values(b.tables)) {
-    if (!Array.isArray(rows) || rows.some((r) => !r || typeof r.id !== "string" || !UUID.test(r.id))) return null;
-  }
-  return b as { tables: Record<string, Array<Record<string, unknown> & { id: string }>> };
-}
-
-/** Merge a JSON backup into local data (and from there to the server). Returns rows restored. */
-export async function restoreJson(file: File): Promise<number> {
-  const parsed = { data: parseBackup(JSON.parse(await file.text())) };
-  if (!parsed.data) throw new Error("bad backup");
-  const uid = getUserId();
-  const ops: SaveOp[] = [];
-  for (const t of TABLES) {
-    for (const row of parsed.data.tables[t] ?? []) {
-      // settings id must equal the current user id
-      const r = t === "settings" ? { ...row, id: uid } : row;
-      const { user_id: _u, updated_at: _up, ...rest } = r as Record<string, unknown>;
-      ops.push({ table: t, row: rest as SaveOp["row"] });
-    }
-  }
-  // chunk so a large backup doesn't block the UI
-  for (let i = 0; i < ops.length; i += 500) {
-    saveMany(ops.slice(i, i + 500));
-    await new Promise((r) => setTimeout(r, 0));
-  }
-  return ops.length;
 }
 
 // ------------------------------------------------------------------ CSV / Excel

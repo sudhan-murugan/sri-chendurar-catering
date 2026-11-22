@@ -108,16 +108,15 @@ When you deploy a new version, the app on your phone shows
 - **உணவுகள்**: ஒவ்வொரு உணவுக்கும் 100 நபர்களுக்கான பொருட்கள், அளவு, விலை சேமிக்கவும். மொத்த செலவு தானாக வரும்.
 - **கணக்கு**: ஒவ்வொரு வேளைக்கும் (காலை / மதியம் / இரவு) நபர்கள் எண்ணிக்கை கொடுத்து உணவுகளைத் தொடவும் – எல்லா அளவுகளும் செலவும் தானாக (100 → 400 = 4 மடங்கு). மெனுவை சேமித்து மற்ற மெனுவுடன் ஒப்பிடலாம்.
 - **விலைகள்**: அரிசி, உளுந்து விலை மாறினால் இங்கே ஒருமுறை மாற்றினால் எல்லா உணவுகளிலும் மாறும்.
-- **⚙ அமைப்புகள்**: காப்பு (Backup) – வாரம் ஒருமுறை WhatsApp/Drive க்கு அனுப்பவும்.
+- **⚙ அமைப்புகள்**: காப்பு (Backup) – Excel கோப்பை வாரம் ஒருமுறை WhatsApp/Drive க்கு அனுப்பவும்.
 
 ---
 
-## Backup & restore
+## Backup
 
-**⚙ → காப்பு (Backup)**:
-- **காப்பை பகிர்** sends a full JSON backup to WhatsApp / Google Drive (via the phone's share sheet).
-- **Excel** download: one sheet per table (prices in rupees).
-- **JSON இலிருந்து மீட்டெடு** restores a JSON backup into the same account (rows are merged; nothing is deleted).
+**⚙ → காப்பு (Backup)**: your data is stored in Supabase; for a copy you can read, use
+**Excel – பகிர்** (send to WhatsApp / Google Drive) or **Excel பதிவிறக்கு** (download).
+One sheet per table, prices in rupees.
 
 ## Security
 

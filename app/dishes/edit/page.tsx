@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Field, IconButton, NumberInput, PageTitle, Select, TextInput, toast } from "@/components/ui";
 import { NumberStepper, StickyActionBar } from "@/components/mobile";
 import { IngredientPicker } from "@/components/Pickers";
+import { askConfirm } from "@/components/ui/Confirm";
 import { getRow, getRows, newId, saveMany, useRowMap, type SaveOp } from "@/lib/db";
 import { replaceChildren, setIngredientPrice } from "@/lib/actions";
 import { compatibleUnits, convert, UNIT_LABEL, type Unit } from "@/lib/units";
@@ -72,8 +73,9 @@ function DishEdit() {
     window.addEventListener("beforeunload", onUnload);
     return () => window.removeEventListener("beforeunload", onUnload);
   }, []);
-  const leave = () => {
-    if (!dirty || confirm(t.simple.unsavedLeave)) router.push("/");
+  const leave = async () => {
+    if (dirty && !(await askConfirm({ title: t.confirm.unsavedTitle, message: t.confirm.unsavedMsg, confirmLabel: t.confirm.unsavedOk, cancelLabel: t.confirm.stay, danger: true }))) return;
+    router.push("/");
   };
   const patchLine = (i: number, p: Partial<Line>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...p } : l)));
 
@@ -108,8 +110,9 @@ function DishEdit() {
     router.push("/");
   }
 
-  function remove() {
-    if (!id || !confirm(f(t.simple.deleteDishConfirm, { name: initial.name }))) return;
+  async function remove() {
+    if (!id) return;
+    if (!(await askConfirm({ title: f(t.confirm.deleteDishTitle, { name: initial.name }), message: t.confirm.deleteDishMsg, confirmLabel: t.confirm.delete, danger: true }))) return;
     dirtyRef.current = false;
     saveMany([{ table: "dishes", row: { id, archived: true } }]);
     toast(t.common.deleted, "neutral");
