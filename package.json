@@ -8,8 +8,7 @@
     "build": "next build && node scripts/build-sw.mjs",
     "start": "npx serve out -l 3000",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "seed:sql": "node --experimental-strip-types scripts/gen-seed-sql.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",

@@ -247,3 +247,41 @@ describe("simple dish scaling (100-person reference)", () => {
     expect(batchCost(RICE, ingMap)).toBe(90000); // 15 kg × ₹60
   });
 });
+
+import { scaleMeals } from "@/lib/simple";
+
+describe("multi-meal orders (breakfast / lunch / dinner)", () => {
+  const ingMap = new Map(ING.map((i) => [i.id, i]));
+  const dishMap = new Map([RICE, SAMBAR, CHUTNEY].map((d) => [d.id, d]));
+  const meal = (id: string, people: number, dishIds: string[]) => ({ id, label: id, people, dishIds });
+
+  it("one meal gives exactly the same result as the single-order calculator (before = after)", () => {
+    const before = scaleOrder([RICE, SAMBAR], 200, ingMap);
+    const after = scaleMeals([meal("lunch", 200, ["d-rice", "d-sambar"])], dishMap, ingMap);
+    expect(after.totalPaise).toBe(before.totalPaise);
+    expect(after.combined).toEqual(before.combined);
+    expect(after.meals[0].dishes.map((d) => d.costPaise)).toEqual(before.dishes.map((d) => d.costPaise));
+  });
+
+  it("different headcounts per meal, same ingredient added once in the shopping list", () => {
+    // breakfast 400: sambar + chutney (both use oil & salt); lunch 500: rice + sambar
+    const r = scaleMeals([meal("b", 400, ["d-sambar", "d-chutney"]), meal("l", 500, ["d-rice", "d-sambar"])], dishMap, ingMap);
+    const qty = (id: string) => r.combined.find((l) => l.ingredientId === id)!.exactQty;
+    expect(qty("dal")).toBe(3 * 4 + 3 * 5); // sambar in both meals = 27 kg
+    expect(qty("rice")).toBe(15 * 5); // 75 kg
+    expect(qty("oil")).toBe(0.5 * 4 + 0.2 * 4 + 0.5 * 5); // 5.3 l
+    expect(r.combined.filter((l) => l.ingredientId === "oil")).toHaveLength(1); // not double-listed
+    expect(r.plates).toBe(900);
+    // total = sum of the two meals (within rounding of a few paise)
+    expect(Math.abs(r.totalPaise - (r.meals[0].costPaise + r.meals[1].costPaise))).toBeLessThanOrEqual(5);
+  });
+
+  it("ignores empty meals and deleted dishes; reports missing prices", () => {
+    const noPrice = new Map(ingMap);
+    noPrice.set("salt", { ...ingMap.get("salt")!, pricePaise: 0 });
+    const r = scaleMeals([meal("a", 0, ["d-rice"]), meal("b", 100, []), meal("c", 100, ["d-sambar", "gone"])], dishMap, noPrice);
+    expect(r.meals).toHaveLength(1);
+    expect(r.plates).toBe(100);
+    expect(r.missingPrice.map((l) => l.ingredientId)).toEqual(["salt"]);
+  });
+});

@@ -13,7 +13,6 @@ import { f, t } from "@/lib/i18n";
 export default function SettingsPage() {
   const s = useSettings();
   const [name, setName] = useState(s.businessName);
-  const [phone, setPhone] = useState(s.phone);
 
   return (
     <div className="mx-auto max-w-xl">
@@ -24,14 +23,11 @@ export default function SettingsPage() {
         <Field label={t.settings.businessName}>
           <TextInput value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field label={t.settings.phone}>
-          <TextInput type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </Field>
         <Button
           full
           icon="check"
           onClick={() => {
-            save("settings", { id: s.id ?? getUserId(), business_name: name.trim() || t.app.name, phone: phone.trim() || null });
+            save("settings", { id: s.id ?? getUserId(), business_name: name.trim() || t.app.name });
             toast(t.common.saved);
           }}
         >

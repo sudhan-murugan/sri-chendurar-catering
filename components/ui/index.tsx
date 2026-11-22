@@ -56,16 +56,16 @@ export function Card({ children, className = "", onClick }: { children: ReactNod
   );
 }
 
-export function PageTitle({ title, subtitle, back, right }: { title: string; subtitle?: string; back?: boolean | string; right?: ReactNode }) {
+export function PageTitle({ title, subtitle, back, onBack, right }: { title: string; subtitle?: string; back?: boolean | string; onBack?: () => void; right?: ReactNode }) {
   const router = useRouter();
   return (
     <div className="mb-5 flex min-h-12 items-center gap-2">
-      {back && (
+      {(back || onBack) && (
         <IconButton
           icon="back"
           label={t.common.back}
           className="-ml-3"
-          onClick={() => (typeof back === "string" ? router.push(back) : window.history.length > 1 ? router.back() : router.push("/"))}
+          onClick={() => (onBack ? onBack() : typeof back === "string" ? router.push(back) : window.history.length > 1 ? router.back() : router.push("/"))}
         />
       )}
       <div className="min-w-0 flex-1">

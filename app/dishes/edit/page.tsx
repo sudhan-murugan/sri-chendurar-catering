@@ -55,10 +55,34 @@ function DishEdit() {
     return ing && q !== null ? Math.round(q * ing.price_paise) : 0;
   };
   const total = lines.reduce((n, l) => n + cost(l), 0);
+  const [showQtyErrors, setShowQtyErrors] = useState(false);
+  const noQty = (l: Line) => !(Number(l.qty) > 0);
+  const missingQty = lines.filter(noQty).length;
+  const missingPrice = lines.filter((l) => !ingMap.get(l.ingredient_id)?.price_paise).length;
+
+  // warn before leaving with unsaved changes (a phone call, back button, closing the app)
+  const snapshot = (n: string, b: number, ls: Line[]) => JSON.stringify([n.trim(), b, ls.map((l) => [l.ingredient_id, l.qty, l.unit])]);
+  const dirty = snapshot(name, batch, lines) !== snapshot(initial.name, initial.batch, initial.lines);
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  useEffect(() => {
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (dirtyRef.current) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onUnload);
+    return () => window.removeEventListener("beforeunload", onUnload);
+  }, []);
+  const leave = () => {
+    if (!dirty || confirm(t.simple.unsavedLeave)) router.push("/");
+  };
   const patchLine = (i: number, p: Partial<Line>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...p } : l)));
 
   function saveDish() {
     if (!name.trim()) return setError(t.simple.saveFirst);
+    if (missingQty > 0) {
+      setShowQtyErrors(true);
+      return;
+    }
     const dishId = id ?? newId();
     const items = lines
       .filter((l) => l.ingredient_id && Number(l.qty) > 0)
@@ -79,12 +103,14 @@ function DishEdit() {
       },
       ...replaceChildren("recipe_items", "dish_id", dishId, items),
     ] as SaveOp[]);
+    dirtyRef.current = false;
     toast(t.common.saved);
     router.push("/");
   }
 
   function remove() {
-    if (!id || !confirm(t.common.confirmDelete)) return;
+    if (!id || !confirm(f(t.simple.deleteDishConfirm, { name: initial.name }))) return;
+    dirtyRef.current = false;
     saveMany([{ table: "dishes", row: { id, archived: true } }]);
     toast(t.common.deleted, "neutral");
     router.push("/");
@@ -95,8 +121,7 @@ function DishEdit() {
       <PageTitle
         title={id ? name || t.simple.dishes : t.simple.newDish}
         subtitle={f(t.simple.forPeople, { n: batch })}
-        back="/"
-        right={id ? <IconButton icon="trash" label={t.common.delete} onClick={remove} className="hover:text-danger" /> : undefined}
+        onBack={leave}
       />
 
       <section className="card grid gap-5 p-4 md:grid-cols-2 md:p-6">
@@ -123,6 +148,13 @@ function DishEdit() {
         <span />
       </div>
 
+      {lines.length === 0 && <p className="t-caption card p-6 text-center">{t.simple.noLinesYet}</p>}
+      {showQtyErrors && missingQty > 0 && (
+        <p role="alert" className="mb-3 rounded-xl border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+          {f(t.simple.qtyMissing, { n: missingQty })}
+        </p>
+      )}
+
       <ul className="space-y-2">
         {lines.map((l, i) => {
           const ing = ingMap.get(l.ingredient_id);
@@ -144,7 +176,7 @@ function DishEdit() {
                 aria-label={t.simple.qty}
                 value={l.qty}
                 onChange={(e) => patchLine(i, { qty: e.target.value.replace(",", ".").replace(/[^0-9.]/g, "") })}
-                className="order-4 px-2 text-center font-semibold md:order-2"
+                className={`order-4 px-2 text-center font-semibold md:order-2 ${showQtyErrors && noQty(l) ? "border-danger" : ""}`}
               />
               <Select aria-label={t.common.unit} value={l.unit} onChange={(e) => patchLine(i, { unit: e.target.value as Unit })} className="order-4 pr-7 pl-2.5 md:order-3">
                 {(ing ? compatibleUnits(ing.unit) : [l.unit]).map((u) => (
@@ -167,6 +199,14 @@ function DishEdit() {
         {t.simple.addIngredient}
       </Button>
 
+      {id && (
+        <div className="mt-10 border-t border-line pt-6">
+          <Button variant="danger" icon="trash" className="w-full md:w-auto" onClick={remove}>
+            {t.simple.deleteDish}
+          </Button>
+        </div>
+      )}
+
       <StickyActionBar>
         <div className="min-w-0 flex-1">
           <div className="t-caption">
@@ -178,6 +218,7 @@ function DishEdit() {
               {t.simple.perPerson} {money(Math.round(total / Math.max(1, batch)))}
             </span>
           </div>
+          {missingPrice > 0 && <div className="text-xs font-medium text-danger">{f(t.simple.missingPriceShort, { n: missingPrice })}</div>}
         </div>
         <Button onClick={saveDish} icon="check" className="px-6 md:px-10">
           {t.common.save}

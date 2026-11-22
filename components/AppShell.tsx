@@ -6,28 +6,19 @@ import { BottomNav, TopNav } from "@/components/mobile";
 import { Icon, Skeleton, Toaster, Button } from "@/components/ui";
 import { PinLock } from "@/components/PinLock";
 import { cachedUserId } from "@/lib/auth";
-import { openStore, getRows, saveMany, useStoreReady } from "@/lib/db";
-import { startSyncLoop, syncNow, scheduleSync, useSyncStatus } from "@/lib/offline-sync";
-import { buildSeed } from "@/lib/seed";
+import { openStore, useStoreReady } from "@/lib/db";
+import { startSyncLoop, syncNow, useSyncStatus } from "@/lib/offline-sync";
 import { DEMO_MODE } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
 import { hasPin, PIN_LOCK_AFTER_MS } from "@/lib/pin";
 import { f, t } from "@/lib/i18n";
-import type { SaveOp } from "@/lib/db";
 
-async function seedIfEmpty(uid: string) {
-  if (getRows("settings").length > 0) return;
-  const rows = await buildSeed(uid);
-  saveMany(rows.map((r) => ({ table: r.table, row: r.row }) as SaveOp));
-  scheduleSync(0);
-}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname() || "/";
   const router = useRouter();
   const isLogin = path.startsWith("/login");
   const ready = useStoreReady();
-  const [firstRunOffline, setFirstRunOffline] = useState(false);
   const [locked, setLocked] = useState(false);
   const hiddenAt = useRef<number | null>(null);
   const [swWaiting, setSwWaiting] = useState<ServiceWorker | null>(null);
@@ -45,10 +36,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       await openStore(uid);
       startSyncLoop();
       if (cancelled) return;
-      if (DEMO_MODE) return seedIfEmpty(uid);
-      const ok = await syncNow();
-      if (ok) await seedIfEmpty(uid);
-      else if (getRows("settings").length === 0 && !navigator.onLine) setFirstRunOffline(true);
+      // no sample data: a new install starts empty; existing data is pulled from the server
+      if (!DEMO_MODE) await syncNow();
     })();
     return () => {
       cancelled = true;
@@ -96,12 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Header />
       <StatusBanner />
       <main className="mx-auto w-full max-w-5xl px-4 pt-5 pb-28 md:px-8 md:pt-8 md:pb-16">
-        {firstRunOffline ? (
-          <div className="card mx-auto mt-10 max-w-md p-8 text-center">
-            <Icon name="offline" size={40} className="mx-auto mb-3 text-muted" />
-            {t.app.firstRunOffline}
-          </div>
-        ) : ready ? (
+        {ready ? (
           children
         ) : (
           <Skeleton rows={5} />

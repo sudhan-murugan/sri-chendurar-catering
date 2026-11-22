@@ -4,10 +4,13 @@ A simple, personal catering cost calculator for your phone (Tamil UI).
 
 1. **Dishes (உணவுகள்)** – for each dish, save the ingredients, quantities and prices
    needed for a reference number of people (normally 100). The dish shows its total cost.
-2. **Calculator (கணக்கு)** – enter the number of people (e.g. 400), tick the dishes.
-   Every ingredient quantity and the total cost are scaled automatically:
-   **400 people = exactly 4 × your 100-person recipe.** Shown dish by dish or as one
-   combined buying list, and can be sent on WhatsApp.
+2. **Calculator (கணக்கு)** – for each meal (breakfast / lunch / dinner) enter the number
+   of people and tick the dishes. Quantities and costs scale automatically:
+   **400 people = exactly 4 × your 100-person recipe.** One page shows the total cost,
+   cost per plate, cost of each dish, the combined buying list (the same ingredient
+   from several dishes/meals is added once) and each dish's ingredients. Share on WhatsApp.
+   Save a menu to compare it with others later – saved menus are re-priced with
+   today's prices (saved menus are kept on that phone).
 3. **Prices (விலைகள்)** – one list of all ingredient prices. Change the price of rice or
    urad dal once and every dish uses the new price. You can also change a price inside a dish.
 
@@ -40,11 +43,8 @@ together in the combined list. No hidden wastage or rounding.
    strong password, tick **Auto confirm user**. This is your only login.
 5. **Project Settings → API**: copy the **Project URL** and the **anon public** key.
 
-Sample data (49 ingredients with prices, 15 dish recipes for 100 people) is added
-**automatically** the first time you log in. You do not need to run
-[supabase/seed.sql](supabase/seed.sql) — it exists only if you want to load the
-sample data from the SQL editor. The sample recipes and prices are rough examples:
-open each dish and change them to your own quantities and prices.
+The app starts **empty** – no sample data. Add your own dishes and prices
+(the home screen shows how to start).
 
 ## 2. Run on your computer (optional)
 
@@ -106,7 +106,7 @@ When you deploy a new version, the app on your phone shows
 
 **தினசரி பயன்பாடு**
 - **உணவுகள்**: ஒவ்வொரு உணவுக்கும் 100 நபர்களுக்கான பொருட்கள், அளவு, விலை சேமிக்கவும். மொத்த செலவு தானாக வரும்.
-- **கணக்கு**: நபர்கள் எண்ணிக்கை (எ.கா. 400) கொடுத்து உணவுகளைத் தொடவும் – எல்லா அளவுகளும் செலவும் தானாக (100 → 400 = 4 மடங்கு).
+- **கணக்கு**: ஒவ்வொரு வேளைக்கும் (காலை / மதியம் / இரவு) நபர்கள் எண்ணிக்கை கொடுத்து உணவுகளைத் தொடவும் – எல்லா அளவுகளும் செலவும் தானாக (100 → 400 = 4 மடங்கு). மெனுவை சேமித்து மற்ற மெனுவுடன் ஒப்பிடலாம்.
 - **விலைகள்**: அரிசி, உளுந்து விலை மாறினால் இங்கே ஒருமுறை மாற்றினால் எல்லா உணவுகளிலும் மாறும்.
 - **⚙ அமைப்புகள்**: காப்பு (Backup) – வாரம் ஒருமுறை WhatsApp/Drive க்கு அனுப்பவும்.
 
@@ -133,9 +133,9 @@ When you deploy a new version, the app on your phone shows
 app/            / (dishes), dishes/edit, calculator, ingredients (prices), settings, login
 components/     ui, mobile (BottomNav, BottomSheet, StickyActionBar, NumberStepper), Pickers
 lib/            simple.ts (scaling), calc.ts + units.ts (engine), db.ts (local store),
-                offline-sync.ts, supabase.ts, seed.ts, backup.ts
+                offline-sync.ts, supabase.ts, backup.ts
 locales/ta.json all UI text – change wording here
-supabase/       migrations (schema + RLS), seed.sql (generated: npm run seed:sql)
+supabase/       migrations (schema + RLS)
 tests/          calc.test.ts
 ```
 

@@ -57,8 +57,10 @@ export default function Home() {
         </div>
       )}
 
-      {list.length === 0 ? (
-        <Empty icon="dish">{t.simple.emptyDishes}</Empty>
+      {dishes.length === 0 ? (
+        <GettingStarted />
+      ) : list.length === 0 ? (
+        <Empty icon="dish">{t.common.noItems}</Empty>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {list.map(({ d, cost }) => (
@@ -68,13 +70,42 @@ export default function Home() {
                   <div className="t-heading">{d.name_ta}</div>
                   <div className="t-caption">{f(t.simple.forPeople, { n: d.batch_size })}</div>
                 </div>
-                <div className="t-amount shrink-0 text-right">{money(cost)}</div>
-                <Icon name="right" size={20} className="shrink-0 text-muted" />
+                <div className="shrink-0 text-right">
+                  <div className="t-amount">{money(cost)}</div>
+                  <div className="text-sm font-medium text-accent-ink">{t.simple.edit} ›</div>
+                </div>
               </Link>
             </li>
           ))}
         </ul>
       )}
     </>
+  );
+}
+
+function GettingStarted() {
+  const steps = [
+    { n: 1, title: t.simple.start1, body: t.simple.start1b },
+    { n: 2, title: t.simple.start2, body: t.simple.start2b },
+    { n: 3, title: t.simple.start3, body: t.simple.start3b },
+  ];
+  return (
+    <section className="card p-5 md:p-6">
+      <h2 className="t-heading mb-4">{t.simple.startTitle}</h2>
+      <ol className="space-y-4">
+        {steps.map((s) => (
+          <li key={s.n} className="flex gap-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent-ink">{s.n}</span>
+            <span>
+              <span className="block font-medium">{s.title}</span>
+              <span className="t-caption block">{s.body}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <LinkButton href="/dishes/edit/" icon="plus" className="mt-5 w-full md:w-auto">
+        {t.simple.addFirstDish}
+      </LinkButton>
+    </section>
   );
 }

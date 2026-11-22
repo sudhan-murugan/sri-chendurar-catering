@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Empty, Field, NumberInput, PageTitle, Select, TextInput, toast } from "@/components/ui";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Chips, Empty, Field, Icon, NumberInput, PageTitle, Select, TextInput, toast } from "@/components/ui";
 import { BottomSheet, SearchBox } from "@/components/mobile";
 import { getRows, newId, saveMany, useTable } from "@/lib/db";
 import { changedToday, setIngredientPrice } from "@/lib/actions";
@@ -10,6 +11,16 @@ import { paiseToInput, rupeesToPaise } from "@/lib/format";
 import { f, t } from "@/lib/i18n";
 
 export default function PricesPage() {
+  return (
+    <Suspense>
+      <Prices />
+    </Suspense>
+  );
+}
+
+function Prices() {
+  const router = useRouter();
+  const filter = useSearchParams().get("f") === "missing" ? "missing" : "all";
   const all = useTable("ingredients");
   const recipe = useTable("recipe_items");
   const dishes = useTable("dishes");
@@ -26,8 +37,9 @@ export default function PricesPage() {
 
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return all.filter((i) => !s || i.name_ta.toLowerCase().includes(s) || (i.name_en ?? "").toLowerCase().includes(s)).sort((a, b) => a.name_ta.localeCompare(b.name_ta, "ta"));
-  }, [all, q]);
+    return all.filter((i) => filter === "all" || !i.price_paise).filter((i) => !s || i.name_ta.toLowerCase().includes(s) || (i.name_en ?? "").toLowerCase().includes(s)).sort((a, b) => a.name_ta.localeCompare(b.name_ta, "ta"));
+  }, [all, q, filter]);
+  const missingCount = all.filter((i) => !i.price_paise).length;
 
   return (
     <>
@@ -40,12 +52,23 @@ export default function PricesPage() {
           </Button>
         }
       />
-      <div className="sticky top-16 z-20 -mx-4 bg-bg px-4 pt-1 pb-3 md:static md:mx-0 md:max-w-sm md:px-0">
+      <div className="sticky top-16 z-20 -mx-4 bg-bg px-4 pt-1 pb-3 md:static md:mx-0 md:max-w-md md:px-0">
         <SearchBox value={q} onChange={setQ} />
+        {(missingCount > 0 || filter === "missing") && (
+          <Chips
+            className="mt-2"
+            options={[
+              { value: "all" as const, label: t.common.all, count: all.length },
+              { value: "missing" as const, label: t.simple.missingFilter, count: missingCount },
+            ]}
+            value={filter}
+            onChange={(v) => router.replace(v === "missing" ? "/ingredients/?f=missing" : "/ingredients/")}
+          />
+        )}
       </div>
 
       {list.length === 0 ? (
-        <Empty icon="basket">{t.common.noItems}</Empty>
+        <Empty icon="basket">{filter === "missing" ? t.simple.allPricesSet : t.common.noItems}</Empty>
       ) : (
         // 1px gaps over a line-coloured background = hairline dividers that also work in a grid
         <ul className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line lg:grid-cols-2">
@@ -83,7 +106,10 @@ function PriceRow({ ing, used, onEdit }: { ing: Ingredient; used: number; onEdit
   return (
     <li className="flex items-center gap-3 bg-surface px-4 py-2.5">
       <button type="button" onClick={onEdit} className="min-h-12 min-w-0 flex-1 text-left">
-        <span className="block font-medium break-words hover:text-accent-ink">{ing.name_ta}</span>
+        <span className="flex items-center gap-1.5 font-medium break-words hover:text-accent-ink">
+          {ing.name_ta}
+          <Icon name="edit" size={15} className="shrink-0 text-muted" />
+        </span>
         <span className="t-caption flex items-center gap-1.5">
           {changedToday(ing) && <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" aria-label={t.common.today} />}
           {used ? f(t.simple.usedIn, { n: used }) : t.simple.notUsed}
