@@ -16,14 +16,14 @@ export function PinPad({ title, onComplete, error }: { title: string; onComplete
   };
   return (
     <div className="flex flex-col items-center gap-6">
-      <Icon name="lock" size={40} className="text-brand-600" />
-      <h2 className="text-xl font-bold">{title}</h2>
+      <Icon name="lock" size={32} className="text-accent-ink" />
+      <h2 className="t-heading">{title}</h2>
       <div className="flex gap-4" aria-live="polite">
         {[0, 1, 2, 3].map((i) => (
-          <span key={i} className={`h-5 w-5 rounded-full border-2 border-brand-600 ${i < pin.length ? "bg-brand-600" : ""}`} />
+          <span key={i} className={`h-4 w-4 rounded-full border-2 border-accent ${i < pin.length ? "bg-accent" : ""}`} />
         ))}
       </div>
-      <div className="h-6 font-semibold text-bad">{error}</div>
+      <div className="h-6 text-sm font-medium text-danger">{error}</div>
       <div className="grid grid-cols-3 gap-4">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((k, i) =>
           k === "" ? (
@@ -33,7 +33,7 @@ export function PinPad({ title, onComplete, error }: { title: string; onComplete
               key={i}
               type="button"
               onClick={() => (k === "⌫" ? setPin(pin.slice(0, -1)) : press(k))}
-              className="h-[72px] w-[72px] rounded-full bg-brand-50 text-3xl font-bold text-brand-700 active:bg-brand-500 active:text-white dark:bg-brand-900 dark:text-brand-100"
+              className="h-[72px] w-[72px] rounded-full border border-line-strong bg-surface text-2xl font-medium tabular-nums transition-colors active:bg-accent active:text-on-accent"
             >
               {k}
             </button>

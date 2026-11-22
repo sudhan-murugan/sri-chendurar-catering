@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_Tamil } from "next/font/google";
+import { Hind_Madurai, Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
-const tamil = Noto_Sans_Tamil({ subsets: ["tamil", "latin"], weight: ["400", "600", "700"], variable: "--font-tamil", display: "swap" });
+// Inter for Latin letters and numbers, Hind Madurai for Tamil (browser picks per character).
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const tamil = Hind_Madurai({ subsets: ["tamil"], weight: ["400", "500", "600", "700"], variable: "--font-tamil", display: "swap" });
 
 export const metadata: Metadata = {
   title: "ஸ்ரீ செந்தூரர் கேட்டரிங்",
@@ -19,7 +21,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#9a3412",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1b1a" },
+  ],
 };
 
 // Applies dark mode before first paint (no flash).
@@ -27,7 +32,7 @@ const themeScript = `try{if(localStorage.getItem('scc_theme')==='dark')document.
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ta" className={tamil.variable} suppressHydrationWarning>
+    <html lang="ta" className={`${inter.variable} ${tamil.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

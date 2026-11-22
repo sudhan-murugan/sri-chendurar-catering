@@ -403,6 +403,10 @@
     "lastUpdated": "மாற்றியது {date}",
     "saveFirst": "பெயர் கொடுக்கவும்",
     "noPrice": "விலை இல்லை",
-    "orderFor": "{n} நபர்கள் – ஆர்டர் கணக்கு"
+    "orderFor": "{n} நபர்கள் – ஆர்டர் கணக்கு",
+    "dishCount": "{n} உணவு வகைகள்",
+    "details": "உணவு விவரம்",
+    "ingredient": "பொருள்",
+    "priceCol": "விலை ₹"
   }
 }

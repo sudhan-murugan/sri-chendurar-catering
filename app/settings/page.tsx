@@ -16,10 +16,11 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState(s.phone);
 
   return (
-    <>
+    <div className="mx-auto max-w-xl">
       <PageTitle title={t.settings.title} back="/" />
 
-      <section className="card space-y-4 p-4">
+      <h2 className="t-heading mb-3">{t.settings.business}</h2>
+      <section className="card space-y-5 p-4 md:p-6">
         <Field label={t.settings.businessName}>
           <TextInput value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
@@ -29,7 +30,6 @@ export default function SettingsPage() {
         <Button
           full
           icon="check"
-          className="h-14 text-lg"
           onClick={() => {
             save("settings", { id: s.id ?? getUserId(), business_name: name.trim() || t.app.name, phone: phone.trim() || null });
             toast(t.common.saved);
@@ -39,18 +39,19 @@ export default function SettingsPage() {
         </Button>
       </section>
 
-      <section className="card mt-4 p-4">
+      <h2 className="t-heading mt-8 mb-3">{t.settings.display}</h2>
+      <section className="card px-4 py-1 md:px-6">
         <DarkModeToggle />
       </section>
 
-      <h2 className="mt-6 mb-2 text-lg font-bold">{t.settings.backup}</h2>
+      <h2 className="t-heading mt-8 mb-3">{t.settings.backup}</h2>
       <BackupPanel />
 
       {!DEMO_MODE && (
         <Button
           full
           variant="secondary"
-          className="mt-6"
+          className="mt-8"
           onClick={async () => {
             if (pendingCount() > 0 && !confirm(t.login.logoutWarn)) return;
             const uid = getUserId();
@@ -63,7 +64,7 @@ export default function SettingsPage() {
           {t.login.logout}
         </Button>
       )}
-    </>
+    </div>
   );
 }
 
@@ -98,9 +99,9 @@ function BackupPanel() {
     }
   };
   return (
-    <section className="card space-y-2 p-4">
+    <section className="card space-y-2 p-4 md:p-6">
       {last && <p className="text-sm text-muted">{f(t.settings.lastBackup, { date: dmy(last) })}</p>}
-      <Button full variant="good" icon="share" disabled={busy} onClick={() => run(() => downloadOrShare(backupJson(), true))}>
+      <Button full variant="primary" icon="share" disabled={busy} onClick={() => run(() => downloadOrShare(backupJson(), true))}>
         {t.settings.shareBackup}
       </Button>
       <Button full variant="secondary" icon="download" disabled={busy} onClick={() => run(async () => downloadOrShare(await excelFile(), false))}>

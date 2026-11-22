@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#9a3412"/>
-  <circle cx="256" cy="256" r="196" fill="#7c2d12"/>
+  <rect width="512" height="512" fill="#0f766e"/>
+  <circle cx="256" cy="256" r="196" fill="#115e59"/>
   <!-- flame -->
   <path d="M256 92c38 52 54 88 54 118a54 54 0 0 1-108 0c0-30 16-66 54-118z" fill="#fbbf24"/>
   <path d="M256 150c18 26 26 44 26 58a26 26 0 0 1-52 0c0-14 8-32 26-58z" fill="#fff7ed"/>

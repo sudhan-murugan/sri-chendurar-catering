@@ -28,24 +28,31 @@ export default function Home() {
 
   return (
     <>
-      <Link href="/calculator/" className="mb-4 flex min-h-20 items-center gap-4 rounded-2xl bg-brand-600 px-5 py-3 text-white shadow-md active:bg-brand-700">
-        <Icon name="calc" size={36} />
-        <span className="flex-1">
-          <span className="block text-xl font-bold">{t.simple.calcButton}</span>
-          <span className="block text-[15px] text-white/85">{t.simple.calcHint}</span>
+      {/* primary action */}
+      <Link href="/calculator/" className="group flex items-center gap-4 rounded-2xl bg-accent p-5 text-on-accent transition-colors hover:bg-accent-hover md:p-6">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
+          <Icon name="calc" size={26} />
         </span>
-        <Icon name="right" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-semibold">{t.simple.calcButton}</span>
+          <span className="block text-[15px] text-white/80">{t.simple.calcHint}</span>
+        </span>
+        <Icon name="right" className="shrink-0 opacity-80 transition-transform group-hover:translate-x-0.5" />
       </Link>
 
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold whitespace-nowrap">{t.nav.home}</h1>
-        <LinkButton href="/dishes/edit/" icon="plus" className="whitespace-nowrap">
+      {/* dishes */}
+      <div className="mt-8 mb-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="t-title">{t.nav.home}</h1>
+          <p className="t-caption">{f(t.simple.dishCount, { n: dishes.length })}</p>
+        </div>
+        <LinkButton href="/dishes/edit/" variant="secondary" icon="plus" className="whitespace-nowrap">
           {t.simple.newDish}
         </LinkButton>
       </div>
 
       {dishes.length > 6 && (
-        <div className="mb-3">
+        <div className="mb-4 md:max-w-sm">
           <SearchBox value={q} onChange={setQ} />
         </div>
       )}
@@ -53,18 +60,16 @@ export default function Home() {
       {list.length === 0 ? (
         <Empty icon="dish">{t.simple.emptyDishes}</Empty>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {list.map(({ d, cost }) => (
             <li key={d.id}>
-              <Link href={`/dishes/edit/?id=${d.id}`} className="card flex items-center gap-2 p-4 active:opacity-80">
+              <Link href={`/dishes/edit/?id=${d.id}`} className="card flex h-full items-center gap-3 p-4 transition-colors hover:border-line-strong md:p-5">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-lg font-bold">{d.name_ta}</span>
-                    <span className="text-xl font-bold tabular-nums">{money(cost)}</span>
-                  </div>
-                  <div className="text-[15px] text-muted">{f(t.simple.forPeople, { n: d.batch_size })}</div>
+                  <div className="t-heading">{d.name_ta}</div>
+                  <div className="t-caption">{f(t.simple.forPeople, { n: d.batch_size })}</div>
                 </div>
-                <Icon name="right" className="shrink-0 text-muted" />
+                <div className="t-amount shrink-0 text-right">{money(cost)}</div>
+                <Icon name="right" size={20} className="shrink-0 text-muted" />
               </Link>
             </li>
           ))}

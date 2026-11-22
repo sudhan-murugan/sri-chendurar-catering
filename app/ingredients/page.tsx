@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Empty, Field, NumberInput, Select, TextInput, toast } from "@/components/ui";
+import { Button, Empty, Field, NumberInput, PageTitle, Select, TextInput, toast } from "@/components/ui";
 import { BottomSheet, SearchBox } from "@/components/mobile";
 import { getRows, newId, saveMany, useTable } from "@/lib/db";
 import { changedToday, setIngredientPrice } from "@/lib/actions";
@@ -31,24 +31,28 @@ export default function PricesPage() {
 
   return (
     <>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold whitespace-nowrap">{t.nav.prices}</h1>
-        <Button icon="plus" className="whitespace-nowrap" onClick={() => setEditing("new")}>
-          {t.simple.newIngredient}
-        </Button>
-      </div>
-      <p className="mb-3 text-[15px] text-muted">{t.simple.pricesHint}</p>
-      <div className="sticky top-14 z-20 -mx-4 bg-app px-4 pt-1 pb-2">
+      <PageTitle
+        title={t.nav.prices}
+        subtitle={t.simple.pricesHint}
+        right={
+          <Button variant="secondary" icon="plus" className="whitespace-nowrap" aria-label={t.simple.newIngredient} onClick={() => setEditing("new")}>
+            <span className="hidden sm:inline">{t.simple.newIngredient}</span>
+          </Button>
+        }
+      />
+      <div className="sticky top-16 z-20 -mx-4 bg-bg px-4 pt-1 pb-3 md:static md:mx-0 md:max-w-sm md:px-0">
         <SearchBox value={q} onChange={setQ} />
       </div>
 
       {list.length === 0 ? (
         <Empty icon="basket">{t.common.noItems}</Empty>
       ) : (
-        <ul className="card divide-y divide-[var(--line)] overflow-hidden">
+        // 1px gaps over a line-coloured background = hairline dividers that also work in a grid
+        <ul className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line lg:grid-cols-2">
           {list.map((i) => (
             <PriceRow key={i.id} ing={i} used={usage.get(i.id)?.size ?? 0} onEdit={() => setEditing(i)} />
           ))}
+          {list.length % 2 === 1 && <li className="hidden bg-surface lg:block" aria-hidden />}
         </ul>
       )}
 
@@ -57,7 +61,7 @@ export default function PricesPage() {
   );
 }
 
-/** Name on the left (tap to rename / change unit), big price box on the right. Saves when you leave the box. */
+/** Name on the left (tap to rename / change unit), price box on the right. Saves when you leave the box. */
 function PriceRow({ ing, used, onEdit }: { ing: Ingredient; used: number; onEdit: () => void }) {
   const [text, setText] = useState(paiseToInput(ing.price_paise, true));
   const [flash, setFlash] = useState(false);
@@ -77,16 +81,17 @@ function PriceRow({ ing, used, onEdit }: { ing: Ingredient; used: number; onEdit
   };
 
   return (
-    <li className={`flex items-center gap-3 px-3 py-2 ${changedToday(ing) ? "bg-green-50 dark:bg-green-950/40" : ""}`}>
+    <li className="flex items-center gap-3 bg-surface px-4 py-2.5">
       <button type="button" onClick={onEdit} className="min-h-12 min-w-0 flex-1 text-left">
-        <span className="block text-[17px] font-bold">{ing.name_ta}</span>
-        <span className="block text-sm text-muted">
+        <span className="block font-medium break-words hover:text-accent-ink">{ing.name_ta}</span>
+        <span className="t-caption flex items-center gap-1.5">
+          {changedToday(ing) && <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" aria-label={t.common.today} />}
           {used ? f(t.simple.usedIn, { n: used }) : t.simple.notUsed}
         </span>
       </button>
-      <div className="flex shrink-0 flex-col items-end">
-        <div className="flex items-center gap-1">
-          <span className="text-lg font-bold">₹</span>
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="relative">
+          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted">₹</span>
           <input
             aria-label={`${ing.name_ta} ${t.common.price}`}
             type="text"
@@ -101,10 +106,12 @@ function PriceRow({ ing, used, onEdit }: { ing: Ingredient; used: number; onEdit
             onChange={(e) => setText(e.target.value.replace(/[^0-9.]/g, ""))}
             onBlur={commit}
             onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-            className={`h-14 w-28 rounded-xl border-2 bg-card px-2 text-right text-2xl font-bold tabular-nums outline-none focus:border-brand-500 ${flash ? "border-good" : ing.price_paise ? "border-line" : "border-bad"}`}
+            className={`h-12 w-28 rounded-xl border bg-surface pr-3 pl-7 text-right text-lg font-semibold tabular-nums outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20 ${
+              flash ? "border-accent bg-accent-soft" : ing.price_paise ? "border-line-strong" : "border-danger"
+            }`}
           />
         </div>
-        <span className="text-sm text-muted">/ {UNIT_LABEL[ing.unit]}</span>
+        <span className="t-caption w-[4.5rem] whitespace-nowrap">/ {UNIT_LABEL[ing.unit]}</span>
       </div>
     </li>
   );
@@ -151,14 +158,14 @@ function IngredientSheet({ ing, used, onClose }: { ing: Ingredient | null; used:
       title={ing ? ing.name_ta : t.simple.newIngredient}
       footer={
         <div className="flex gap-2">
-          {ing && <Button variant="secondary" icon="trash" aria-label={t.common.delete} className="text-bad" onClick={remove} />}
-          <Button full icon="check" className="h-14 text-lg" onClick={submit}>
+          {ing && <Button variant="danger" icon="trash" aria-label={t.common.delete} onClick={remove} />}
+          <Button full icon="check" onClick={submit}>
             {t.common.save}
           </Button>
         </div>
       }
     >
-      <div className="space-y-4 pb-2">
+      <div className="space-y-5">
         <Field label={t.ingredients.nameTa} error={error}>
           <TextInput value={name} onChange={(e) => setName(e.target.value)} autoFocus={!ing} />
         </Field>
@@ -173,7 +180,7 @@ function IngredientSheet({ ing, used, onClose }: { ing: Ingredient | null; used:
             </Select>
           </Field>
           <Field label={f(t.simple.price, { unit: UNIT_LABEL[unit] })}>
-            <NumberInput value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} className="text-xl font-bold" />
+            <NumberInput value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} className="font-semibold" />
           </Field>
         </div>
       </div>

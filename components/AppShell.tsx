@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { BottomNav } from "@/components/mobile";
+import { BottomNav, TopNav } from "@/components/mobile";
 import { Icon, Skeleton, Toaster, Button } from "@/components/ui";
 import { PinLock } from "@/components/PinLock";
 import { cachedUserId } from "@/lib/auth";
@@ -95,10 +95,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       <Header />
       <StatusBanner />
-      <main className="mx-auto w-full max-w-3xl px-4 pt-3 pb-28">
+      <main className="mx-auto w-full max-w-5xl px-4 pt-5 pb-28 md:px-8 md:pt-8 md:pb-16">
         {firstRunOffline ? (
-          <div className="card mt-10 p-6 text-center text-lg">
-            <Icon name="offline" size={48} className="mx-auto mb-3 text-bad" />
+          <div className="card mx-auto mt-10 max-w-md p-8 text-center">
+            <Icon name="offline" size={40} className="mx-auto mb-3 text-muted" />
             {t.app.firstRunOffline}
           </div>
         ) : ready ? (
@@ -110,8 +110,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <BottomNav />
       <Toaster />
       {swWaiting && (
-        <div className="fixed inset-x-4 z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-gray-900 p-3 text-white shadow-xl" style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
-          <span className="flex-1 font-semibold">{t.app.updateReady}</span>
+        <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-line bg-surface p-3 pl-4 md:bottom-6">
+          <span className="flex-1 font-medium">{t.app.updateReady}</span>
           <Button onClick={() => swWaiting.postMessage("SKIP_WAITING")}>{t.app.update}</Button>
         </div>
       )}
@@ -131,32 +131,42 @@ function Header() {
   const s = useSettings();
   const sync = useSyncStatus();
   return (
-    <header className="no-print sticky top-0 z-40 bg-brand-600 text-white shadow" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-      <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4">
-        {s.logo ? <img src={s.logo} alt="" className="h-9 w-9 rounded-full bg-white object-cover" /> : <span className="text-2xl" aria-hidden>🪔</span>}
-        <Link href="/" className="flex h-12 min-w-0 flex-1 items-center truncate text-lg font-bold">
-          {s.businessName}
+    <header className="no-print sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 md:px-8">
+        <Link href="/" className="flex min-h-12 min-w-0 flex-1 items-center gap-3 md:flex-none">
+          {s.logo ? (
+            <img src={s.logo} alt="" className="h-9 w-9 rounded-lg border border-line object-cover" />
+          ) : (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-[15px] font-semibold text-on-accent" aria-hidden>
+              ஸ்ரீ
+            </span>
+          )}
+          <span className="truncate text-[17px] font-semibold">{s.businessName}</span>
         </Link>
+        <div className="hidden flex-1 justify-center md:flex">
+          <TopNav />
+        </div>
         {!DEMO_MODE && (
           <button
             type="button"
             onClick={() => void syncNow()}
-            className="tap flex items-center justify-center gap-1 rounded-full text-sm"
+            className="tap flex items-center justify-center rounded-xl text-muted hover:bg-surface-2"
             aria-label={sync.online ? t.app.synced : t.app.offline}
+            title={sync.online ? t.app.synced : t.app.offline}
           >
             {!sync.online ? (
-              <Icon name="offline" />
+              <Icon name="offline" size={20} className="text-danger" />
             ) : sync.syncing ? (
-              <Icon name="refresh" className="animate-spin" />
+              <Icon name="refresh" size={20} className="animate-spin" />
             ) : sync.pending > 0 ? (
-              <span className="rounded-full bg-white/20 px-2 font-bold">{sync.pending}</span>
+              <span className="rounded-full bg-accent-soft px-2 text-sm font-semibold text-accent-ink">{sync.pending}</span>
             ) : (
-              <Icon name="cloud" className="opacity-80" />
+              <Icon name="cloud" size={20} />
             )}
           </button>
         )}
-        <Link href="/settings/" aria-label={t.nav.settings} className="tap -mr-2 flex items-center justify-center rounded-full active:bg-white/20">
-          <Icon name="settings" />
+        <Link href="/settings/" aria-label={t.nav.settings} title={t.nav.settings} className="tap -mr-3 flex items-center justify-center rounded-xl text-muted hover:bg-surface-2 hover:text-ink">
+          <Icon name="settings" size={22} />
         </Link>
       </div>
     </header>
@@ -165,23 +175,23 @@ function Header() {
 
 function StatusBanner() {
   const sync = useSyncStatus();
-  if (DEMO_MODE) return <div className="no-print bg-amber-100 px-4 py-1.5 text-center text-sm font-semibold text-amber-900">{t.app.demo}</div>;
+  const bar = "no-print border-b px-4 py-2 text-center text-sm font-medium";
+  if (DEMO_MODE) return <div className={`${bar} border-line bg-surface-2 text-muted`}>{t.app.demo}</div>;
   if (sync.authExpired)
     return (
-      <Link href="/login/" className="no-print block bg-red-100 px-4 py-2 text-center font-semibold text-red-900">
+      <Link href="/login/" className={`${bar} block border-line bg-danger-soft text-danger`}>
         {t.app.sessionExpired} →
       </Link>
     );
   if (!sync.online)
     return (
-      <div role="status" className="no-print flex items-center justify-center gap-2 bg-gray-900 px-4 py-2 text-center text-[15px] font-semibold text-white">
-        <Icon name="offline" size={20} />
+      <div role="status" className={`${bar} flex items-center justify-center gap-2 border-line bg-ink text-bg`}>
+        <Icon name="offline" size={18} />
         {t.app.offline}
-        {sync.pending > 0 && <span className="opacity-80">({sync.pending})</span>}
+        {sync.pending > 0 && <span className="opacity-70">({sync.pending})</span>}
       </div>
     );
-  if (sync.error && sync.pending > 0)
-    return <div className="no-print bg-orange-100 px-4 py-1.5 text-center text-sm font-semibold text-orange-900">{t.app.syncError}</div>;
+  if (sync.error && sync.pending > 0) return <div className={`${bar} border-line bg-danger-soft text-danger`}>{t.app.syncError}</div>;
   return null;
 }
 
@@ -195,7 +205,7 @@ function usePullToRefresh(enabled: boolean) {
     const show = (dy: number) => {
       if (!el) {
         el = document.createElement("div");
-        el.className = "fixed left-1/2 top-16 z-50 -translate-x-1/2 rounded-full bg-card px-4 py-2 text-sm font-semibold shadow-lg border border-line";
+        el.className = "fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full bg-surface px-4 py-2 text-sm font-medium border border-line";
         document.body.appendChild(el);
       }
       el.textContent = dy > 80 ? t.app.refreshing : t.app.pullToRefresh;

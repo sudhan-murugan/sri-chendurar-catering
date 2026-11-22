@@ -92,72 +92,94 @@ function DishEdit() {
 
   return (
     <>
-      <PageTitle title={id ? name || t.simple.dishes : t.simple.newDish} back="/" right={id ? <IconButton icon="trash" label={t.common.delete} onClick={remove} className="text-bad" /> : undefined} />
+      <PageTitle
+        title={id ? name || t.simple.dishes : t.simple.newDish}
+        subtitle={f(t.simple.forPeople, { n: batch })}
+        back="/"
+        right={id ? <IconButton icon="trash" label={t.common.delete} onClick={remove} className="hover:text-danger" /> : undefined}
+      />
 
-      <div className="card space-y-4 p-4">
+      <section className="card grid gap-5 p-4 md:grid-cols-2 md:p-6">
         <Field label={t.simple.dishName} error={error}>
           <TextInput value={name} onChange={(e) => (setName(e.target.value), setError(null))} placeholder="இட்லி" />
         </Field>
         <Field label={t.simple.refPeople} hint={t.simple.refHint}>
           <NumberStepper label={t.simple.refPeople} value={batch} step={10} min={1} onChange={setBatch} />
         </Field>
+      </section>
+
+      <div className="mt-8 mb-3">
+        <h2 className="t-heading">{t.simple.ingredients}</h2>
+        <p className="t-caption">{t.simple.priceNote}</p>
       </div>
 
-      <h2 className="mt-5 mb-1 text-lg font-bold">
-        {t.simple.ingredients} <span className="font-normal text-muted">({f(t.simple.forPeople, { n: batch })})</span>
-      </h2>
-      <p className="mb-2 text-sm text-muted">{t.simple.priceNote}</p>
+      {/* column headings (tablet / desktop) */}
+      <div className="t-label mb-2 hidden grid-cols-[minmax(0,1fr)_6.5rem_8.5rem_8rem_7.5rem_3rem] gap-3 px-4 md:grid">
+        <span>{t.simple.ingredient}</span>
+        <span>{t.simple.qty}</span>
+        <span>{t.common.unit}</span>
+        <span>{t.simple.priceCol}</span>
+        <span className="text-right">{t.simple.lineCost}</span>
+        <span />
+      </div>
 
       <ul className="space-y-2">
         {lines.map((l, i) => {
           const ing = ingMap.get(l.ingredient_id);
           return (
-            <li key={l.key} className="card p-3">
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setPicking(i)} className="tap min-w-0 flex-1 text-left text-lg font-bold">
-                  {ing?.name_ta ?? "?"}
-                </button>
-                <IconButton icon="x" label={t.common.delete} className="text-muted" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} />
+            <li
+              key={l.key}
+              className="card grid grid-cols-[1fr_1.25fr_1fr] gap-x-2 gap-y-1.5 p-3 md:grid-cols-[minmax(0,1fr)_6.5rem_8.5rem_8rem_7.5rem_3rem] md:items-center md:gap-3 md:px-4 md:py-2"
+            >
+              <button type="button" onClick={() => setPicking(i)} className="order-1 col-span-2 min-h-11 min-w-0 text-left text-[17px] font-semibold hover:text-accent-ink md:col-span-1">
+                {ing?.name_ta ?? "?"}
+              </button>
+              <div className="order-2 flex justify-end md:order-6">
+                <IconButton icon="x" label={t.common.delete} className="hover:text-danger" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} />
               </div>
-              <div className="grid grid-cols-[1fr_1.25fr_1fr] items-end gap-x-2 text-sm leading-tight text-muted">
-                <span>{t.simple.qty}</span>
-                <span>{t.common.unit}</span>
-                <span>{ing ? f(t.simple.price, { unit: UNIT_LABEL[ing.unit] }) : ""}</span>
-              </div>
-              <div className="mt-1 grid grid-cols-[1fr_1.25fr_1fr] gap-2">
-                <NumberInput aria-label={t.simple.qty} value={l.qty} onChange={(e) => patchLine(i, { qty: e.target.value.replace(",", ".").replace(/[^0-9.]/g, "") })} className="px-2 text-center text-lg font-bold" />
-                <Select aria-label={t.common.unit} value={l.unit} onChange={(e) => patchLine(i, { unit: e.target.value as Unit })} className="pr-7 pl-2 text-[16px]">
-                  {(ing ? compatibleUnits(ing.unit) : [l.unit]).map((u) => (
-                    <option key={u} value={u}>
-                      {UNIT_LABEL[u]}
-                    </option>
-                  ))}
-                </Select>
-                {ing && <PriceBox ing={ing} />}
-              </div>
-              <div className="mt-1 text-right text-[15px] text-muted">
-                {t.simple.lineCost}: <span className="text-lg font-bold text-[var(--ink)] tabular-nums">{money(cost(l))}</span>
+              <span className="t-label order-3 md:hidden">{t.simple.qty}</span>
+              <span className="t-label order-3 md:hidden">{t.common.unit}</span>
+              <span className="t-label order-3 leading-tight md:hidden">{ing ? f(t.simple.price, { unit: UNIT_LABEL[ing.unit] }) : ""}</span>
+              <NumberInput
+                aria-label={t.simple.qty}
+                value={l.qty}
+                onChange={(e) => patchLine(i, { qty: e.target.value.replace(",", ".").replace(/[^0-9.]/g, "") })}
+                className="order-4 px-2 text-center font-semibold md:order-2"
+              />
+              <Select aria-label={t.common.unit} value={l.unit} onChange={(e) => patchLine(i, { unit: e.target.value as Unit })} className="order-4 pr-7 pl-2.5 md:order-3">
+                {(ing ? compatibleUnits(ing.unit) : [l.unit]).map((u) => (
+                  <option key={u} value={u}>
+                    {UNIT_LABEL[u]}
+                  </option>
+                ))}
+              </Select>
+              <div className="order-4 md:order-4">{ing && <PriceBox ing={ing} />}</div>
+              <div className="order-5 col-span-3 flex items-baseline justify-end gap-2 pt-0.5 md:col-span-1">
+                <span className="t-caption md:hidden">{t.simple.lineCost}</span>
+                <span className="t-amount">{money(cost(l))}</span>
               </div>
             </li>
           );
         })}
       </ul>
 
-      <Button variant="secondary" full icon="plus" className="mt-3 h-14 text-lg" onClick={() => setPicking("new")}>
+      <Button variant="secondary" icon="plus" className="mt-3 w-full md:w-auto" onClick={() => setPicking("new")}>
         {t.simple.addIngredient}
       </Button>
 
       <StickyActionBar>
         <div className="min-w-0 flex-1">
-          <div className="text-sm text-muted">
+          <div className="t-caption">
             {t.simple.total} · {f(t.simple.forPeople, { n: batch })}
           </div>
-          <div className="text-2xl leading-tight font-bold tabular-nums">{money(total)}</div>
-          <div className="text-xs text-muted tabular-nums">
-            {t.simple.perPerson} {money(Math.round(total / Math.max(1, batch)))}
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <span className="text-2xl font-semibold tabular-nums">{money(total)}</span>
+            <span className="t-caption tabular-nums">
+              {t.simple.perPerson} {money(Math.round(total / Math.max(1, batch)))}
+            </span>
           </div>
         </div>
-        <Button onClick={saveDish} icon="check" className="h-14 px-8 text-lg">
+        <Button onClick={saveDish} icon="check" className="px-6 md:px-10">
           {t.common.save}
         </Button>
       </StickyActionBar>
@@ -196,7 +218,7 @@ function PriceBox({ ing }: { ing: Ingredient }) {
           focused.current = false;
           setIngredientPrice(ing, rupeesToPaise(text));
         }}
-        className={`px-2 text-center text-lg font-bold ${ing.price_paise ? "" : "border-bad"}`}
+        className={`px-2 text-center font-semibold ${ing.price_paise ? "" : "border-danger"}`}
       />
   );
 }

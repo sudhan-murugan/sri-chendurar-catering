@@ -46,10 +46,10 @@ export function IngredientPicker({ open, onClose, onPick, exclude = [] }: { open
     <BottomSheet open={open} onClose={() => (setCreating(null), onClose())} title={creating ? creating : t.dishes.pickIngredient}>
       {creating ? (
         <div className="space-y-3 pb-2">
-          <p className="text-lg font-semibold">{t.simple.newUnit}</p>
+          <p className="t-heading">{t.simple.newUnit}</p>
           <div className="grid grid-cols-2 gap-2">
             {UNITS.map((u) => (
-              <button key={u} type="button" onClick={() => create(u)} className="h-14 rounded-xl border-2 border-line bg-card text-lg font-bold active:bg-brand-50">
+              <button key={u} type="button" onClick={() => create(u)} className="h-12 rounded-xl border border-line-strong bg-surface font-medium transition-colors hover:bg-accent-soft">
                 {UNIT_LABEL[u]}
               </button>
             ))}
@@ -57,24 +57,24 @@ export function IngredientPicker({ open, onClose, onPick, exclude = [] }: { open
         </div>
       ) : (
         <>
-          <div className="sticky -top-3 z-10 -mx-4 bg-card px-4 pt-1 pb-2">
+          <div className="sticky -top-4 z-10 -mx-5 bg-surface px-5 pt-1 pb-3">
             <SearchBox value={q} onChange={setQ} autoFocus />
           </div>
           {typed && !exact && (
-            <button type="button" onClick={() => setCreating(typed)} className="mb-2 flex min-h-14 w-full items-center gap-3 rounded-xl border-2 border-dashed border-brand-600 px-3 text-left text-[17px] font-bold text-brand-700 dark:text-brand-100">
+            <button type="button" onClick={() => setCreating(typed)} className="mb-2 flex min-h-12 w-full items-center gap-3 rounded-xl border border-dashed border-accent bg-accent-soft px-3 text-left font-medium text-accent-ink">
               <Icon name="plus" />
               {f(t.simple.createNew, { name: typed })}
             </button>
           )}
-          <ul className="divide-y divide-[var(--line)]">
+          <ul className="divide-y divide-line">
             {list.map((i) => (
               <li key={i.id}>
-                <button type="button" disabled={excluded.has(i.id)} onClick={() => done(i)} className="flex min-h-14 w-full items-center gap-3 py-2 text-left active:bg-black/5 disabled:opacity-40">
-                  <span className="flex-1 text-[17px] font-semibold">{i.name_ta}</span>
-                  <span className="text-[15px] text-muted tabular-nums">
+                <button type="button" disabled={excluded.has(i.id)} onClick={() => done(i)} className="flex min-h-12 w-full items-center gap-3 py-2 text-left hover:text-accent-ink disabled:opacity-40">
+                  <span className="flex-1 font-medium">{i.name_ta}</span>
+                  <span className="t-caption tabular-nums">
                     {i.price_paise ? `${money(i.price_paise)} / ${UNIT_LABEL[i.unit]}` : UNIT_LABEL[i.unit]}
                   </span>
-                  {excluded.has(i.id) && <Icon name="check" className="text-good" />}
+                  {excluded.has(i.id) && <Icon name="check" size={20} className="text-accent-ink" />}
                 </button>
               </li>
             ))}

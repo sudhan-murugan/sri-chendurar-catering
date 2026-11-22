@@ -29,18 +29,20 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-10">
       <div className="mb-8 text-center">
-        <div className="text-5xl" aria-hidden>🪔</div>
-        <h1 className="mt-2 text-2xl font-bold text-brand-600 dark:text-brand-100">{t.app.name}</h1>
-        <p className="text-muted">{t.login.title}</p>
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-xl font-semibold text-on-accent" aria-hidden>
+          ஸ்ரீ
+        </span>
+        <h1 className="t-title mt-4">{t.app.name}</h1>
+        <p className="t-caption">{t.login.title}</p>
       </div>
-      <form onSubmit={submit} className="card space-y-4 p-5">
+      <form onSubmit={submit} className="card space-y-5 p-6">
         <Field label={t.login.email}>
           <TextInput type="email" autoComplete="username" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label={t.login.password} error={error}>
           <TextInput type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
-        <Button type="submit" full disabled={busy} className="h-14 text-lg">
+        <Button type="submit" full disabled={busy}>
           {busy ? t.app.loading : t.login.submit}
         </Button>
       </form>
