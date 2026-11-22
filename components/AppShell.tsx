@@ -116,12 +116,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 function Header() {
   const s = useSettings();
   const sync = useSyncStatus();
+  // your logo as the browser-tab icon too
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!link) return;
+    link.dataset.default ??= link.href;
+    link.href = s.logo ?? link.dataset.default;
+  }, [s.logo]);
   return (
     <header className="no-print sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 md:px-8">
         <Link href="/" className="flex min-h-12 min-w-0 flex-1 items-center gap-3 md:flex-none">
           {s.logo ? (
-            <img src={s.logo} alt="" className="h-9 w-9 rounded-lg border border-line object-cover" />
+            <img src={s.logo} alt="" className="h-9 w-9 shrink-0 rounded-lg border border-line bg-white object-contain" />
           ) : (
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-[15px] font-semibold text-on-accent" aria-hidden>
               ஸ்ரீ

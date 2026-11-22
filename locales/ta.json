@@ -351,7 +351,7 @@
     "pinRemove": "PIN நீக்கு",
     "display": "தோற்றம்",
     "darkMode": "இருண்ட தோற்றம்",
-    "backup": "காப்பு & மீட்பு",
+    "backup": "காப்பு (Backup)",
     "exportExcel": "Excel பதிவிறக்கு",
     "exportJson": "JSON காப்பு பதிவிறக்கு",
     "shareBackup": "Excel – பகிர் (WhatsApp / Drive)",
@@ -363,7 +363,13 @@
     "lastBackup": "கடைசி காப்பு: {date}",
     "account": "கணக்கு",
     "loadSample": "மாதிரி தகவல் ஏற்று",
-    "version": "பதிப்பு"
+    "version": "பதிப்பு",
+    "addLogo": "லோகோ சேர்",
+    "logoHint": "சதுர வடிவ படம் சிறந்தது. மேலே தலைப்பில் காட்டப்படும்.",
+    "logoBad": "இந்த படத்தைத் திறக்க முடியவில்லை. வேறு படத்தைத் தேர்வு செய்யவும்.",
+    "removeLogoTitle": "லோகோவை நீக்கவா?",
+    "removeLogoMsg": "தலைப்பில் இயல்பான “ஸ்ரீ” குறி காட்டப்படும்.",
+    "logoSaved": "லோகோ சேமிக்கப்பட்டது"
   },
   "simple": {
     "dishes": "உணவு வகைகள்",

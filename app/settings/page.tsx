@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Button, Field, PageTitle, TextInput, Toggle, toast } from "@/components/ui";
+import { useRef, useState } from "react";
+import { Button, Field, Icon, PageTitle, TextInput, Toggle, toast } from "@/components/ui";
 import { getUserId, pendingCount, save, wipeLocal } from "@/lib/db";
 import { useSettings } from "@/lib/settings";
 import { clearPin } from "@/lib/pin";
@@ -21,6 +21,7 @@ export default function SettingsPage() {
 
       <h2 className="t-heading mb-3">{t.settings.business}</h2>
       <section className="card space-y-5 p-4 md:p-6">
+        <LogoEditor />
         <Field label={t.settings.businessName}>
           <TextInput value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
@@ -61,6 +62,95 @@ export default function SettingsPage() {
           {t.login.logout}
         </Button>
       )}
+    </div>
+  );
+}
+
+/** Pick a logo from the gallery/camera. Resized to fit 256×256 so it stays small, syncs fast and works offline. */
+async function resizeLogo(file: File): Promise<string> {
+  const img = await createImageBitmap(file);
+  const size = 256;
+  const scale = Math.min(1, size / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+  img.close();
+  // keep well under the database limit (300 KB of text)
+  for (const q of [0.9, 0.75, 0.6]) {
+    const url = c.toDataURL("image/webp", q);
+    if (url.length < 250_000) return url;
+  }
+  return c.toDataURL("image/jpeg", 0.6);
+}
+
+function LogoEditor() {
+  const s = useSettings();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const id = s.id ?? getUserId();
+
+  const onFile = async (file: File) => {
+    setBusy(true);
+    try {
+      if (!file.type.startsWith("image/")) throw new Error("not an image");
+      save("settings", { id, logo_data_url: await resizeLogo(file) });
+      toast(t.settings.logoSaved);
+    } catch {
+      toast(t.settings.logoBad, "bad");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <span className="t-label mb-1.5 block">{t.settings.logo}</span>
+      <div className="flex items-center gap-4">
+        <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-line bg-white">
+          {s.logo ? (
+            <img src={s.logo} alt={t.settings.logo} className="h-full w-full object-contain" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-accent text-2xl font-semibold text-on-accent" aria-hidden>
+              ஸ்ரீ
+            </span>
+          )}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+          <Button variant="secondary" icon="upload" disabled={busy} onClick={() => input.current?.click()}>
+            {s.logo ? t.settings.changeLogo : t.settings.addLogo}
+          </Button>
+          {s.logo && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                if (await askConfirm({ title: t.settings.removeLogoTitle, message: t.settings.removeLogoMsg, confirmLabel: t.confirm.delete, danger: true })) {
+                  save("settings", { id, logo_data_url: null });
+                  toast(t.common.deleted, "neutral");
+                }
+              }}
+              className="flex min-h-11 items-center gap-1.5 px-1 text-sm font-medium text-muted hover:text-danger"
+            >
+              <Icon name="trash" size={16} /> {t.settings.removeLogo}
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="t-caption mt-2">{t.settings.logoHint}</p>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void onFile(file);
+        }}
+      />
     </div>
   );
 }
